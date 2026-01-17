@@ -3,6 +3,8 @@ include_once __DIR__ . '/../config/core.php';
 include_once __DIR__ . '/../config/database.php';
 include_once __DIR__ . '/../objects/user.php';
 
+session_start();
+
 $db = (new Database())->getConnection();
 $user = new User($db);
 
@@ -22,6 +24,8 @@ $stmt->bindParam(':email',$email);
 $stmt->execute();
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 if($row && password_verify($password,$row['password'])){
+    $_SESSION['user_id'] = $row['user_id'];
+    $_SESSION['role_id'] = $row['role_id'];
     echo json_encode(["success"=>true,"user"=>["user_id"=>$row['user_id'],"name"=>$row['name'],"email"=>$row['email'],"role_id"=>$row['role_id']]]);
 }else{
     echo json_encode(["success"=>false,"message"=>"Invalid credentials"]);

@@ -19,6 +19,14 @@ class Employee{
         $stmt->execute();
         return $stmt;
     }
+
+    public function readOne(){
+        $query = "SELECT e.employee_id,u.name,e.hire_date,e.salary,d.department_name FROM " . $this->table_name . " e JOIN user u ON e.user_id=u.user_id JOIN department d ON e.department_id=d.department_id WHERE e.employee_id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $this->employee_id);
+        $stmt->execute();
+        return $stmt;
+    }
 }
 
 ?>
