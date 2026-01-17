@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Manage Users</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">U</div><h1>Manage Users</h1></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3>Users</h3>
+        <div class="search-row"><input class="form-control" id="q" placeholder="Search users"/><a class="btn" id="addBtn">Add</a></div>
+      </div>
+      <table id="usersTable">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script src="../assets/js/main.js"></script>
+  <script>
+    // load users (demo uses the API stub)
+    apiFetch('../users/read-all.php').then(json=>{
+      const tbody = document.querySelector('#usersTable tbody');
+      if(json && json.records){
+        tbody.innerHTML = json.records.map(u=>`<tr><td>${u.name}</td><td>${u.email}</td><td>${u.role_id}</td><td><a class='btn secondary' href='#'>Edit</a></td></tr>`).join('');
+      } else tbody.innerHTML = '<tr><td colspan="4" class="small">No users</td></tr>';
+    });
+  </script>
+</body>
+</html>

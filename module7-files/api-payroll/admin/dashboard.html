@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Admin Dashboard</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">A</div><h1>Payroll — Admin</h1></div>
+      <div class="nav"><a class="btn" href="users.html">Manage Users</a><a class="btn secondary" href="../shared/notifications.html">Notifications</a></div>
+    </div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="col-3 card kpi">
+        <div class="label">Employees</div>
+        <div class="value">128</div>
+        <div class="small">Active employees across departments</div>
+      </div>
+      <div class="col-3 card kpi">
+        <div class="label">Payroll this month</div>
+        <div class="value">$ 145,320</div>
+        <div class="small">Net payroll total</div>
+      </div>
+      <div class="col-3 card kpi">
+        <div class="label">Attendance Today</div>
+        <div class="value">120 Present</div>
+        <div class="small">Checked-in employees</div>
+      </div>
+      <div class="col-3 card kpi">
+        <div class="label">Pending Payslips</div>
+        <div class="value">6</div>
+        <div class="small">Require review & issue</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="col-9 card">
+        <h3>Recent Employees</h3>
+        <table>
+          <thead><tr><th>Name</th><th>Department</th><th>Hire Date</th><th>Salary</th></tr></thead>
+          <tbody>
+            <tr><td>Jane Doe</td><td>Finance</td><td>2024-03-15</td><td>$3,500</td></tr>
+            <tr><td>John Smith</td><td>IT</td><td>2025-01-06</td><td>$2,900</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-3 card">
+        <h4>Quick Actions</h4>
+        <div class="actions">
+          <a class="btn" href="users.html">Add User</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>
