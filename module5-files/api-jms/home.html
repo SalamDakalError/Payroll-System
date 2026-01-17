@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+
+    <!-- CSS -->
+    <link href="app/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="app/assets/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+
+        <!-- Brand -->
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">Project Name</a>
+        </div>
+
+        <!-- Left Nav -->
+        <ul class="nav navbar-nav">
+
+            <!-- PRODUCTS -->
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    Products <span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a href="#" class="read-product-button">Product List</a></li>
+                    <li><a href="#" class="create-product-button">Add New Product</a></li>
+                </ul>
+            </li>
+
+            <!-- CATEGORIES -->
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    Categories <span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a href="#" class="read-category-button">Category List</a></li>
+                    <li><a href="#" class="create-category-button">Add New Category</a></li>
+                </ul>
+            </li>
+
+            <!-- TRANSACTIONS -->
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+        Transactions <span class="caret"></span>
+    </a>
+    <ul class="dropdown-menu">
+        <li>
+            <a href="#" id="transactions-list">Transactions List</a>
+        </li>
+        <li>
+            <a href="#" id="add-transaction">Add New Transaction</a>
+        </li>
+    </ul>
+</li>
+
+
+
+        <!-- Right Nav -->
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="#" class="logout-user-button">Logout</a></li>
+        </ul>
+
+    </div>
+</nav>
+
+<!-- APP CONTENT -->
+<div id="app"></div>
+
+<!-- JS -->
+<script src="app/assets/js/jquery.js"></script>
+<script src="app/assets/js/bootstrap.min.js"></script>
+<script src="app/assets/js/bootbox.min.js"></script>
+
+<script src="app/app.js"></script>
+
+<!-- HOME -->
+<script src="app/home/home-page.js"></script>
+<script src="app/home/logout.js"></script>
+
+<!-- PRODUCTS -->
+<script src="app/products/products.js"></script>
+<script src="app/products/read-all-prod.js"></script>
+<script src="app/products/create-prod.js"></script>
+<script src="app/products/read-one-prod.js"></script>
+<script src="app/products/update-prod.js"></script>
+<script src="app/products/delete-prod.js"></script>
+<script src="app/products/search-prod.js"></script>
+
+<!-- CATEGORIES -->
+<script src="app/categories/categories.js"></script>
+<script src="app/categories/read-all-cat.js"></script>
+<script src="app/categories/create-cat.js"></script>
+<script src="app/categories/read-one-cat.js"></script>
+<script src="app/categories/update-cat.js"></script>
+<script src="app/categories/delete-cat.js"></script>
+<script src="app/categories/search-cat.js"></script>
+
+<!-- TRANSACTIONS -->
+<script src="app/transactions/transactions.js"></script>
+<script src="app/transactions/read-all-trans.js"></script>
+<script src="app/transactions/create-trans.js"></script>
+<script src="app/transactions/search-trans.js"></script>
+
+</body>
+</html>

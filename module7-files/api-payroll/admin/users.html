@@ -16,8 +16,9 @@
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <h3>Users</h3>
-        <div class="search-row"><input class="form-control" id="q" placeholder="Search users"/><a class="btn" id="addBtn">Add</a></div>
+        <div class="search-row"><input class="form-control" id="q" placeholder="Search users"/><a class="btn" href="add-user.html">Add</a></div>
       </div>
+
       <table id="usersTable">
         <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
         <tbody>
@@ -27,13 +28,42 @@
   </div>
   <script src="../assets/js/main.js"></script>
   <script>
-    // load users (demo uses the API stub)
-    apiFetch('../users/read-all.php').then(json=>{
-      const tbody = document.querySelector('#usersTable tbody');
+    // Define apiFetch if not loaded
+    if(!window.apiFetch){
+      window.apiFetch = async (url, opts={})=>{
+        try{
+          const res = await fetch(url, opts);
+          return await res.json();
+        }catch(e){console.error('apiFetch',e);return null}
+      };
+    }
+
+    let roles = [];
+
+    // Load roles
+    apiFetch('../roles/read-all.php').then(json=>{
       if(json && json.records){
-        tbody.innerHTML = json.records.map(u=>`<tr><td>${u.name}</td><td>${u.email}</td><td>${u.role_id}</td><td><a class='btn secondary' href='#'>Edit</a></td></tr>`).join('');
-      } else tbody.innerHTML = '<tr><td colspan="4" class="small">No users</td></tr>';
+        roles = json.records;
+        loadUsers();
+      }
     });
+
+    // Load users
+    function loadUsers(){
+      apiFetch('../users/read-all.php').then(json=>{
+        const tbody = document.querySelector('#usersTable tbody');
+        if(json && json.records){
+          tbody.innerHTML = json.records.map(u=>{
+            const role = roles.find(r=>r.role_id == u.role_id);
+            const roleName = role ? role.role_name : u.role_id;
+            return `<tr><td>${u.name}</td><td>${u.email}</td><td>${roleName}</td><td><a class='btn secondary' href='#'>Edit</a></td></tr>`;
+          }).join('');
+        } else tbody.innerHTML = '<tr><td colspan="4" class="small">No users</td></tr>';
+      });
+    }
+
+    // Initial load
+    loadUsers();
   </script>
 </body>
 </html>

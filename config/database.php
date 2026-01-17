@@ -2,14 +2,12 @@
 
 class Database
 {
-	// specify your own database credentials
-	private $host = "127.0.0.1"; // or localhost
+	private $host = "127.0.0.1";
 	private $db_name = "api_db_initials";
 	private $username = "root";
-	private $password = "123456"; // change for production
+	private $password = "123456";
 	public $conn;
 
-	// get the database connection
 	public function getConnection()
 	{
 		$this->conn = null;
@@ -25,3 +23,4 @@ class Database
 		return $this->conn;
 	}
 }
+?>

@@ -16,6 +16,17 @@ class Role{
         $stmt->execute();
         return $stmt;
     }
+
+    public function create(){
+        $query = "INSERT INTO " . $this->table_name . " SET role_name=:role_name";
+        $stmt = $this->conn->prepare($query);
+        $this->role_name = htmlspecialchars(strip_tags($this->role_name));
+        $stmt->bindParam(":role_name", $this->role_name);
+        if($stmt->execute()){
+            return true;
+        }
+        return false;
+    }
 }
 
 ?>
