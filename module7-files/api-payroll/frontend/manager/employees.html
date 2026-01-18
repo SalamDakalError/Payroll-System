@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Manage Employees</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">E</div><h1>Manage Employees</h1></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="topbar" style="padding:0;margin-bottom:16px">
+        <h3 style="margin:0">Manage Employees</h3>
+        <button class="btn" id="addEmployeeBtn">Add Employee</button>
+      </div>
+
+      <div id="employeeForm" style="display:none;margin-bottom:16px;padding:16px;border:1px solid #e6eef7;border-radius:8px">
+        <h4 id="formTitle">Add New Employee</h4>
+        <form id="employeeFormData">
+          <input type="hidden" name="employee_id" id="employee_id">
+          <div class="grid">
+            <div class="col-6">
+              <label>User:</label>
+              <select name="user_id" id="user_id" required>
+                <option value="">Select User</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Department:</label>
+              <select name="department_id" id="department_id" required>
+                <option value="">Select Department</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Salary:</label>
+              <input type="number" name="salary" id="salary" step="0.01" required>
+            </div>
+            <div class="col-6">
+              <label>Hire Date:</label>
+              <input type="date" name="hire_date" id="hire_date" required>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <button type="submit" class="btn" id="saveBtn">Save Employee</button>
+            <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="message"></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Salary</th>
+            <th>Hire Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="employeesTable">
+          <tr><td colspan="5">Loading employees...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script src="../assets/js/main.js"></script>
+  <script>
+    let employees = [];
+    let users = [];
+    let departments = [];
+
+    async function loadEmployees() {
+      try {
+        const response = await fetch('manage-employees.php');
+        const result = await response.json();
+
+        if (result.success) {
+          employees = result.employees;
+          renderEmployeesTable();
+        }
+      } catch (error) {
+        console.error('Error loading employees:', error);
+        document.getElementById('employeesTable').innerHTML = '<tr><td colspan="5">Error loading employees</td></tr>';
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const response = await fetch('../users/read.php');
+        const result = await response.json();
+        if (result.success) {
+          users = result.records;
+        }
+      } catch (error) {
+        console.error('Error loading users:', error);
+      }
+    }
+
+    async function loadDepartments() {
+      try {
+        const response = await fetch('../departments/read-all.php');
+        const result = await response.json();
+        if (result.success) {
+          departments = result.records;
+        }
+      } catch (error) {
+        console.error('Error loading departments:', error);
+      }
+    }
+
+    function renderEmployeesTable() {
+      const tbody = document.getElementById('employeesTable');
+      if (employees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No employees found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = employees.map(emp => `
+        <tr>
+          <td>${emp.name}</td>
+          <td>${emp.department_name}</td>
+          <td>$${parseFloat(emp.salary).toFixed(2)}</td>
+          <td>${emp.hire_date}</td>
+          <td><button class="btn secondary" onclick="editEmployee(${emp.employee_id})">Edit</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function populateFormSelects() {
+      const userSelect = document.getElementById('user_id');
+      userSelect.innerHTML = '<option value="">Select User</option>' +
+        users.filter(u => !employees.some(e => e.user_id == u.user_id)).map(u =>
+          `<option value="${u.user_id}">${u.name} (${u.email})</option>`
+        ).join('');
+
+      const deptSelect = document.getElementById('department_id');
+      deptSelect.innerHTML = '<option value="">Select Department</option>' +
+        departments.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    }
+
+    function showEmployeeForm(employee = null) {
+      document.getElementById('employeeForm').style.display = 'block';
+      populateFormSelects();
+
+      if (employee) {
+        document.getElementById('formTitle').textContent = 'Edit Employee';
+        document.getElementById('employee_id').value = employee.employee_id;
+        document.getElementById('user_id').value = employee.user_id;
+        document.getElementById('user_id').disabled = true; // Can't change user
+        document.getElementById('department_id').value = employee.department_id;
+        document.getElementById('salary').value = employee.salary;
+        document.getElementById('hire_date').value = employee.hire_date;
+      } else {
+        document.getElementById('formTitle').textContent = 'Add New Employee';
+        document.getElementById('employeeFormData').reset();
+        document.getElementById('employee_id').value = '';
+        document.getElementById('user_id').disabled = false;
+      }
+    }
+
+    function hideEmployeeForm() {
+      document.getElementById('employeeForm').style.display = 'none';
+    }
+
+    async function editEmployee(employeeId) {
+      const employee = employees.find(e => e.employee_id == employeeId);
+      if (employee) {
+        // Load full employee data
+        try {
+          const response = await fetch(`../employees/read-one.php?id=${employeeId}`);
+          const result = await response.json();
+          if (result.success && result.employee) {
+            showEmployeeForm(result.employee);
+          }
+        } catch (error) {
+          console.error('Error loading employee details:', error);
+        }
+      }
+    }
+
+    // Event listeners
+    document.getElementById('addEmployeeBtn').addEventListener('click', () => showEmployeeForm());
+
+    document.getElementById('cancelBtn').addEventListener('click', hideEmployeeForm);
+
+    document.getElementById('employeeFormData').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+
+      const isEdit = data.employee_id;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      try {
+        const response = await fetch('manage-employees.php', {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('message').innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+          hideEmployeeForm();
+          loadEmployees();
+          loadUsers(); // Refresh available users
+        } else {
+          document.getElementById('message').innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+        }
+      } catch (error) {
+        console.error('Error saving employee:', error);
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">An error occurred</div>';
+      }
+    });
+
+    // Load data when page loads
+    loadEmployees();
+    loadUsers();
+    loadDepartments();
+  </script>
+</body>
+</html>

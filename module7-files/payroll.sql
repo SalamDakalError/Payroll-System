@@ -16,33 +16,21 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/`payroll_system` /*!40100 DEFAULT CHARAC
 
 USE `payroll_system`;
 
-/*Table structure for table `attendance` */
+/*Table structure for table `deduction` */
 
-DROP TABLE IF EXISTS `attendance`;
+DROP TABLE IF EXISTS `deduction`;
 
-CREATE TABLE `attendance` (
-  `attendance_id` int(11) NOT NULL AUTO_INCREMENT,
-  `employee_id` int(11) NOT NULL,
-  `date` date NOT NULL,
-  `status` enum('present','absent','leave') DEFAULT 'present',
-  PRIMARY KEY (`attendance_id`),
-  KEY `employee_id` (`employee_id`),
-  CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee` (`employee_id`)
+CREATE TABLE `deduction` (
+  `deduction_id` int(11) NOT NULL AUTO_INCREMENT,
+  `payroll_id` int(11) NOT NULL,
+  `deduction_type` varchar(100) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`deduction_id`),
+  KEY `payroll_id` (`payroll_id`),
+  CONSTRAINT `deduction_ibfk_1` FOREIGN KEY (`payroll_id`) REFERENCES `payroll` (`payroll_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*Data for the table `attendance` */
-
-/*Table structure for table `department` */
-
-DROP TABLE IF EXISTS `department`;
-
-CREATE TABLE `department` (
-  `department_id` int(11) NOT NULL AUTO_INCREMENT,
-  `department_name` varchar(100) NOT NULL,
-  PRIMARY KEY (`department_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `department` */
+/*Data for the table `deduction` */
 
 /*Table structure for table `employee` */
 
@@ -51,14 +39,11 @@ DROP TABLE IF EXISTS `employee`;
 CREATE TABLE `employee` (
   `employee_id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
-  `department_id` int(11) NOT NULL,
-  `hire_date` date DEFAULT NULL,
-  `salary` decimal(12,2) DEFAULT 0.00,
+  `job_title` varchar(100) NOT NULL,
+  `hourly_rate` decimal(10,2) NOT NULL,
   PRIMARY KEY (`employee_id`),
   KEY `user_id` (`user_id`),
-  KEY `department_id` (`department_id`),
-  CONSTRAINT `employee_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`),
-  CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `department` (`department_id`)
+  CONSTRAINT `employee_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `employee` */
@@ -71,7 +56,9 @@ CREATE TABLE `payroll` (
   `payroll_id` int(11) NOT NULL AUTO_INCREMENT,
   `employee_id` int(11) NOT NULL,
   `pay_period` varchar(50) NOT NULL,
-  `net_salary` decimal(12,2) DEFAULT 0.00,
+  `total_hours` decimal(10,2) NOT NULL,
+  `gross_pay` decimal(12,2) NOT NULL,
+  `net_pay` decimal(12,2) NOT NULL,
   PRIMARY KEY (`payroll_id`),
   KEY `employee_id` (`employee_id`),
   CONSTRAINT `payroll_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee` (`employee_id`)
@@ -102,11 +89,28 @@ CREATE TABLE `role` (
   `role_id` int(11) NOT NULL AUTO_INCREMENT,
   `role_name` varchar(50) NOT NULL,
   PRIMARY KEY (`role_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `role` */
 
-insert  into `role`(`role_id`,`role_name`) values (1,'admin'),(2,'hr'),(3,'employee');
+insert  into `role`(`role_id`,`role_name`) values (1,'Admin'),(2,'Manager'),(3,'Employee');
+
+/*Table structure for table `shift` */
+
+DROP TABLE IF EXISTS `shift`;
+
+CREATE TABLE `shift` (
+  `shift_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employee_id` int(11) NOT NULL,
+  `shift_date` date NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  PRIMARY KEY (`shift_id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `shift_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employee` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `shift` */
 
 /*Table structure for table `user` */
 
@@ -122,11 +126,11 @@ CREATE TABLE `user` (
   UNIQUE KEY `email` (`email`),
   KEY `role_id` (`role_id`),
   CONSTRAINT `user_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `user` */
 
-insert  into `user`(`user_id`,`name`,`email`,`password`,`role_id`) values (5,'Admin User','admin@payroll.com','\\/gi407.7/l0dvKb/SuCAHcw7KL/YZzGG8PYbo.',1),(6,'Mali Loki','employee@gmail.com','$2y$10$XDjSJlwAZ274oN.vcEmM/OKiM1Jiqt2N37qfZqJ/BmjQtbtWZzIbq',3);
+insert  into `user`(`user_id`,`name`,`email`,`password`,`role_id`) values (1,'Admin User','admin@payroll.com','$2y$10$KEPA070AFza03Pj3fPVLyeJDiLTHcNaWwd/H2vQsbmg3mlvqrTC8G',1);
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

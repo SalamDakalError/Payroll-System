@@ -2,12 +2,12 @@
 header("Content-Type: application/json");
 
 include_once '../config/database.php';
-include_once '../objects/payslip.php';
+include_once '../objects/payroll.php';
 
 $db = (new Database())->getConnection();
-$payslip = new Payslip($db);
+$payroll = new Payroll($db);
 
-$stmt = $payslip->readAll();
+$stmt = $payroll->readAll();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo json_encode(array("records" => $rows));
 ?>

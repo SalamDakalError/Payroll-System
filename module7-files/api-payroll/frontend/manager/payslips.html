@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Payslip Management</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">S</div><h1>Payslip Management</h1></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="payroll.html">Payroll</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="topbar" style="padding:0;margin-bottom:16px">
+        <h3 style="margin:0">Issue Payslips</h3>
+        <div class="search-row">
+          <select id="payPeriodFilter">
+            <option value="">All Periods</option>
+            <option value="<?php echo date('Y-m'); ?>"><?php echo date('F Y'); ?></option>
+            <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>"><?php echo date('F Y', strtotime('-1 month')); ?></option>
+          </select>
+          <button class="btn" id="filterBtn">Filter</button>
+        </div>
+      </div>
+
+      <div id="message"></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Pay Period</th>
+            <th>Net Salary</th>
+            <th>Payslip Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="payslipTable">
+          <tr><td colspan="5">Loading payroll records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Issued Payslips</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Pay Period</th>
+            <th>Net Salary</th>
+            <th>Issued Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="issuedPayslipsTable">
+          <tr><td colspan="5">Loading issued payslips...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Payslip Modal -->
+  <div id="payslipModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:24px;border-radius:8px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>Payslip Details</h3>
+        <button id="closeModal" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
+      </div>
+      <div id="payslipContent">
+        <!-- Payslip content will be loaded here -->
+      </div>
+      <div style="margin-top:16px;text-align:right">
+        <button class="btn" id="issuePayslipBtn">Issue Payslip</button>
+        <button class="btn secondary" id="printPayslipBtn">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/main.js"></script>
+  <script>
+    let payrollRecords = [];
+    let issuedPayslips = [];
+    let currentPayrollId = null;
+
+    async function loadPayrollRecords(period = '') {
+      try {
+        let url = '../payroll/read-all.php';
+        if (period) {
+          url += `?period=${period}`;
+        }
+
+        const response = await fetch(url);
+        const result = await response.json();
+        if (result.success) {
+          payrollRecords = result.records;
+          renderPayslipTable();
+        }
+      } catch (error) {
+        console.error('Error loading payroll:', error);
+      }
+    }
+
+    async function loadIssuedPayslips() {
+      try {
+        const response = await fetch('../payslips/read-all.php');
+        const result = await response.json();
+        if (result.success) {
+          issuedPayslips = result.records;
+          renderIssuedPayslipsTable();
+        }
+      } catch (error) {
+        console.error('Error loading payslips:', error);
+      }
+    }
+
+    function renderPayslipTable() {
+      const tbody = document.getElementById('payslipTable');
+      if (payrollRecords.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No payroll records found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = payrollRecords.map(record => {
+        const hasPayslip = issuedPayslips.some(p => p.payroll_id == record.payroll_id);
+        return `
+          <tr>
+            <td>${record.employee_name}</td>
+            <td>${record.pay_period}</td>
+            <td>$${parseFloat(record.net_salary).toFixed(2)}</td>
+            <td><span class="badge ${hasPayslip ? 'present' : 'absent'}">${hasPayslip ? 'Issued' : 'Pending'}</span></td>
+            <td>
+              <button class="btn secondary" onclick="viewPayslip(${record.payroll_id})">View</button>
+              ${!hasPayslip ? `<button class="btn" onclick="showIssueModal(${record.payroll_id})">Issue</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderIssuedPayslipsTable() {
+      const tbody = document.getElementById('issuedPayslipsTable');
+      if (issuedPayslips.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No issued payslips found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = issuedPayslips.map(payslip => `
+        <tr>
+          <td>${payslip.employee_name}</td>
+          <td>${payslip.pay_period}</td>
+          <td>$${parseFloat(payslip.net_salary).toFixed(2)}</td>
+          <td>${payslip.issued_date}</td>
+          <td>
+            <button class="btn secondary" onclick="viewPayslip(${payslip.payroll_id})">View</button>
+            <button class="btn secondary" onclick="printPayslip(${payslip.payslip_id})">Print</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function viewPayslip(payrollId) {
+      try {
+        const response = await fetch(`../payroll/read-one.php?id=${payrollId}`);
+        const result = await response.json();
+        if (result.success) {
+          showPayslipModal(result.payroll);
+        }
+      } catch (error) {
+        console.error('Error loading payslip:', error);
+      }
+    }
+
+    function showPayslipModal(payroll) {
+      currentPayrollId = payroll.payroll_id;
+      const content = document.getElementById('payslipContent');
+
+      content.innerHTML = `
+        <div style="border:1px solid #e6eef7;padding:16px;border-radius:8px;">
+          <h4 style="text-align:center;margin-bottom:16px;">PAYSLIP</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div><strong>Employee:</strong> ${payroll.employee_name}</div>
+            <div><strong>Pay Period:</strong> ${payroll.pay_period}</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;"><strong>Gross Salary:</strong></td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">$${parseFloat(payroll.gross_salary).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">SSS Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.sss_employee).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">PhilHealth Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.philhealth_employee).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">Pag-IBIG Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.pagibig_employee).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">Income Tax:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.income_tax).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;font-weight:bold;">Total Deductions:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;font-weight:bold;">-$${parseFloat(payroll.total_deductions).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;font-size:16px;">Net Salary:</td><td style="padding:8px;text-align:right;font-weight:bold;font-size:16px;">$${parseFloat(payroll.net_salary).toFixed(2)}</td></tr>
+          </table>
+        </div>
+      `;
+
+      document.getElementById('payslipModal').style.display = 'block';
+    }
+
+    function showIssueModal(payrollId) {
+      currentPayrollId = payrollId;
+      viewPayslip(payrollId);
+    }
+
+    async function issuePayslip() {
+      if (!currentPayrollId) return;
+
+      try {
+        const response = await fetch('../payslips/create.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payroll_id: currentPayrollId })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('message').innerHTML = '<div class="alert alert-success">Payslip issued successfully</div>';
+          document.getElementById('payslipModal').style.display = 'none';
+          loadPayrollRecords();
+          loadIssuedPayslips();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error issuing payslip:', error);
+        alert('An error occurred while issuing the payslip');
+      }
+    }
+
+    function printPayslip(payslipId) {
+      // Simple print functionality
+      window.print();
+    }
+
+    // Event listeners
+    document.getElementById('filterBtn').addEventListener('click', () => {
+      const period = document.getElementById('payPeriodFilter').value;
+      loadPayrollRecords(period);
+    });
+
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('payslipModal').style.display = 'none';
+    });
+
+    document.getElementById('issuePayslipBtn').addEventListener('click', issuePayslip);
+    document.getElementById('printPayslipBtn').addEventListener('click', () => printPayslip(currentPayrollId));
+
+    // Close modal when clicking outside
+    document.getElementById('payslipModal').addEventListener('click', (e) => {
+      if (e.target.id === 'payslipModal') {
+        document.getElementById('payslipModal').style.display = 'none';
+      }
+    });
+
+    // Load data when page loads
+    loadPayrollRecords();
+    loadIssuedPayslips();
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Employee Dashboard</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">EMP</div><h1>My Dashboard</h1></div>
+      <div class="nav"><a class="btn" href="my-shifts.html">My Shifts</a><a class="btn" href="my-payroll.html">My Payroll</a><a class="btn" href="payslip.html">Payslip</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
+    </div>
+
+    <div class="grid" style="margin-bottom:16px">
+      <div class="col-4 card kpi"><div class="label">Name</div><div class="value" id="employee-name">Loading...</div></div>
+      <div class="col-4 card kpi"><div class="label">Job Title</div><div class="value" id="job-title">Loading...</div></div>
+      <div class="col-4 card kpi"><div class="label">Hourly Rate</div><div class="value" id="hourly-rate">Loading...</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Payslips</h3>
+      <table><thead><tr><th>Period</th><th>Gross Pay</th><th>Net Pay</th><th>Issued</th></tr></thead>
+      <tbody id="payslips-table"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+  <script src="../assets/js/main.js"></script>
+  <script>
+    // Load employee data
+    fetch('/Payroll-System/module7-files/api-payroll/auth/check-session.php')
+      .then(response => response.json())
+      .then(data => {
+        if (data.logged_in) {
+          document.getElementById('employee-name').textContent = data.user.name;
+          // Assuming we have job_title and hourly_rate in session or fetch from API
+          // For now, placeholder
+        }
+      });
+
+    // Load recent payslips - Note: This needs to be implemented in Payslip class
+    fetch('/Payroll-System/module7-files/api-payroll/payslips/read-all.php')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('payslips-table');
+        tbody.innerHTML = data.records.slice(0,5).map(p => 
+          `<tr><td>${p.pay_period}</td><td>$${p.gross_pay}</td><td>$${p.net_pay}</td><td>${p.issued_date}</td></tr>`
+        ).join('');
+      });
+  </script>
+</body>
+</html>

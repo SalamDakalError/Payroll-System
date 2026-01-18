@@ -2,7 +2,7 @@
 class Database{ 
  
     private $hostJMS = "127.0.0.1"; 
-    private $db_nameJMS = "api_db_jms"; 
+    private $db_nameJMS = " payroll_system"; 
     private $usernameJMS = "root";
     private $passwordJMS = ""; 
     public $connJMS; 

@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="frontend/assets/css/style.css" />
+  <title>Create Admin User</title>
+</head>
+<body>
+  <div class="container">
+    <h1>Create Admin User</h1>
+    <p>This script will create the default admin user for the payroll system.</p>
+
+    <div class="card">
+      <h3>Admin Credentials</h3>
+      <p><strong>Email:</strong> admin@payroll.com</p>
+      <p><strong>Password:</strong> password</p>
+    </div>
+
+    <button id="createBtn" class="btn primary" onclick="createAdmin()">Create Admin User</button>
+
+    <div id="result" class="card" style="display:none; margin-top:16px;"></div>
+
+    <p style="margin-top:16px;">
+      <a href="frontend/shared/login.html">← Back to Login</a>
+    </p>
+  </div>
+
+  <script>
+    async function createAdmin() {
+      const btn = document.getElementById('createBtn');
+      const result = document.getElementById('result');
+
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        const response = await fetch('create_admin.php');
+        const data = await response.json();
+
+        result.style.display = 'block';
+        result.innerHTML = `
+          <h3>Result</h3>
+          <p>${data.message}</p>
+          ${data.email ? `<p><strong>Email:</strong> ${data.email}</p>` : ''}
+          ${data.password ? `<p><strong>Password:</strong> ${data.password}</p>` : ''}
+        `;
+
+        if (data.message.includes('successfully')) {
+          result.className = 'card success';
+        } else {
+          result.className = 'card warning';
+        }
+
+      } catch (error) {
+        result.style.display = 'block';
+        result.className = 'card error';
+        result.innerHTML = `
+          <h3>Error</h3>
+          <p>Failed to create admin user: ${error.message}</p>
+        `;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Create Admin User';
+    }
+  </script>
+</body>
+</html>

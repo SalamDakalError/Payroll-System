@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>My Payroll</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">EMP</div><h1>My Payroll</h1></div>
+      <div class="nav"><a class="btn secondary" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+    </div>
+
+    <div class="card">
+      <h3>My Payroll Records</h3>
+      <table><thead><tr><th>Pay Period</th><th>Total Hours</th><th>Gross Pay</th><th>Net Pay</th></tr></thead>
+      <tbody id="payroll-table"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+  <script src="../assets/js/main.js"></script>
+  <script>
+    // Load payroll for current employee
+    fetch('/Payroll-System/module7-files/api-payroll/auth/check-session.php')
+      .then(response => response.json())
+      .then(data => {
+        if (data.logged_in && data.user.role_id == 3) {
+          fetch('/Payroll-System/module7-files/api-payroll/payroll/read-by-employee.php?employee_id=' + data.user.employee_id)
+            .then(response => response.json())
+            .then(data => {
+              const tbody = document.getElementById('payroll-table');
+              tbody.innerHTML = data.records.map(p => 
+                `<tr><td>${p.pay_period}</td><td>${p.total_hours}</td><td>$${p.gross_pay}</td><td>$${p.net_pay}</td></tr>`
+              ).join('');
+            });
+        }
+      });
+  </script>
+</body>
+</html>

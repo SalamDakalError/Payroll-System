@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Generate Payroll</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">P</div><h1>Generate Payroll</h1></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="employees.html">Employees</a><a class="btn secondary" href="attendance.html">Attendance</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="topbar" style="padding:0;margin-bottom:16px">
+        <h3 style="margin:0">Payroll Generation</h3>
+        <div>
+          <select id="payPeriod">
+            <option value="<?php echo date('Y-m'); ?>"><?php echo date('F Y'); ?></option>
+            <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>"><?php echo date('F Y', strtotime('-1 month')); ?></option>
+          </select>
+          <button class="btn" id="generatePayrollBtn">Generate Payroll</button>
+        </div>
+      </div>
+
+      <div id="message"></div>
+
+      <div id="payrollPreview" style="display:none">
+        <h4>Payroll Preview for <span id="previewPeriod"></span></h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Gross Salary</th>
+              <th>SSS (Employee)</th>
+              <th>PhilHealth (Employee)</th>
+              <th>Pag-IBIG (Employee)</th>
+              <th>Income Tax</th>
+              <th>Total Deductions</th>
+              <th>Net Salary</th>
+            </tr>
+          </thead>
+          <tbody id="payrollTable">
+          </tbody>
+        </table>
+        <div style="margin-top:16px;text-align:right">
+          <button class="btn" id="confirmPayrollBtn">Confirm & Save Payroll</button>
+          <button class="btn secondary" id="cancelPayrollBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Payroll Records</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Pay Period</th>
+            <th>Net Salary</th>
+            <th>Generated Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="recentPayrollTable">
+          <tr><td colspan="5">Loading payroll records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../assets/js/main.js"></script>
+  <script>
+    let payrollData = [];
+
+    async function loadRecentPayroll() {
+      try {
+        const response = await fetch('../payroll/read-all.php');
+        const result = await response.json();
+        if (result.success) {
+          renderRecentPayrollTable(result.records);
+        }
+      } catch (error) {
+        console.error('Error loading payroll:', error);
+      }
+    }
+
+    function renderRecentPayrollTable(records) {
+      const tbody = document.getElementById('recentPayrollTable');
+      if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No payroll records found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = records.map(record => `
+        <tr>
+          <td>${record.employee_name}</td>
+          <td>${record.pay_period}</td>
+          <td>$${parseFloat(record.net_salary).toFixed(2)}</td>
+          <td>${record.created_date || 'N/A'}</td>
+          <td><span class="badge present">Processed</span></td>
+        </tr>
+      `).join('');
+    }
+
+    async function generatePayrollPreview() {
+      const payPeriod = document.getElementById('payPeriod').value;
+
+      try {
+        document.getElementById('generatePayrollBtn').disabled = true;
+        document.getElementById('generatePayrollBtn').textContent = 'Generating...';
+
+        const response = await fetch('generate-payroll.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pay_period: payPeriod, preview: true })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          payrollData = result.payroll_data;
+          renderPayrollPreview(payPeriod);
+          document.getElementById('payrollPreview').style.display = 'block';
+        } else {
+          document.getElementById('message').innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+        }
+      } catch (error) {
+        console.error('Error generating payroll:', error);
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">An error occurred while generating payroll</div>';
+      } finally {
+        document.getElementById('generatePayrollBtn').disabled = false;
+        document.getElementById('generatePayrollBtn').textContent = 'Generate Payroll';
+      }
+    }
+
+    function renderPayrollPreview(payPeriod) {
+      document.getElementById('previewPeriod').textContent = payPeriod;
+
+      const tbody = document.getElementById('payrollTable');
+      tbody.innerHTML = payrollData.map(employee => `
+        <tr>
+          <td>${employee.name}</td>
+          <td>$${parseFloat(employee.gross_salary).toFixed(2)}</td>
+          <td>$${parseFloat(employee.sss_employee).toFixed(2)}</td>
+          <td>$${parseFloat(employee.philhealth_employee).toFixed(2)}</td>
+          <td>$${parseFloat(employee.pagibig_employee).toFixed(2)}</td>
+          <td>$${parseFloat(employee.income_tax).toFixed(2)}</td>
+          <td>$${parseFloat(employee.total_deductions).toFixed(2)}</td>
+          <td><strong>$${parseFloat(employee.net_salary).toFixed(2)}</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    async function confirmPayroll() {
+      const payPeriod = document.getElementById('payPeriod').value;
+
+      try {
+        document.getElementById('confirmPayrollBtn').disabled = true;
+        document.getElementById('confirmPayrollBtn').textContent = 'Saving...';
+
+        const response = await fetch('generate-payroll.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pay_period: payPeriod, payroll_data: payrollData })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('message').innerHTML = '<div class="alert alert-success">Payroll generated successfully</div>';
+          document.getElementById('payrollPreview').style.display = 'none';
+          loadRecentPayroll();
+        } else {
+          document.getElementById('message').innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+        }
+      } catch (error) {
+        console.error('Error saving payroll:', error);
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">An error occurred while saving payroll</div>';
+      } finally {
+        document.getElementById('confirmPayrollBtn').disabled = false;
+        document.getElementById('confirmPayrollBtn').textContent = 'Confirm & Save Payroll';
+      }
+    }
+
+    // Event listeners
+    document.getElementById('generatePayrollBtn').addEventListener('click', generatePayrollPreview);
+    document.getElementById('confirmPayrollBtn').addEventListener('click', confirmPayroll);
+    document.getElementById('cancelPayrollBtn').addEventListener('click', () => {
+      document.getElementById('payrollPreview').style.display = 'none';
+    });
+
+    // Load data when page loads
+    loadRecentPayroll();
+  </script>
+</body>
+</html>

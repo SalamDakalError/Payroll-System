@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <title>Payslip</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">EMP</div><h1>Payslip</h1></div>
+      <div class="nav"><a class="btn secondary" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+    </div>
+
+    <div class="card">
+      <h3>Download/View Payslip</h3>
+      <p>Select a pay period to view your payslip.</p>
+      <select id="pay-period-select">
+        <option value="">Select Pay Period</option>
+      </select>
+      <button id="view-payslip-btn" class="btn">View Payslip</button>
+      <div id="payslip-details" style="display:none;">
+        <h4>Payslip Details</h4>
+        <p><strong>Pay Period:</strong> <span id="pp"></span></p>
+        <p><strong>Total Hours:</strong> <span id="hours"></span></p>
+        <p><strong>Gross Pay:</strong> <span id="gross"></span></p>
+        <p><strong>Deductions:</strong> <span id="deductions"></span></p>
+        <p><strong>Net Pay:</strong> <span id="net"></span></p>
+        <p><strong>Issued Date:</strong> <span id="issued"></span></p>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/js/main.js"></script>
+  <script>
+    // Load pay periods
+    fetch('../payroll/read-by-employee.php')
+      .then(response => response.json())
+      .then(data => {
+        const select = document.getElementById('pay-period-select');
+        data.records.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p.payroll_id;
+          option.textContent = p.pay_period;
+          select.appendChild(option);
+        });
+      });
+
+    document.getElementById('view-payslip-btn').addEventListener('click', () => {
+      const payrollId = document.getElementById('pay-period-select').value;
+      if (!payrollId) return;
+
+      fetch('../payslips/read-one.php?payroll_id=' + payrollId)
+        .then(response => response.json())
+        .then(data => {
+          if (data.records.length > 0) {
+            const p = data.records[0];
+            document.getElementById('pp').textContent = p.pay_period;
+            document.getElementById('hours').textContent = p.total_hours;
+            document.getElementById('gross').textContent = '$' + p.gross_pay;
+            // Deductions would need to be calculated or fetched
+            document.getElementById('deductions').textContent = '$0'; // Placeholder
+            document.getElementById('net').textContent = '$' + p.net_pay;
+            document.getElementById('issued').textContent = p.issued_date;
+            document.getElementById('payslip-details').style.display = 'block';
+          }
+        });
+    });
+  </script>
+</body>
+</html>

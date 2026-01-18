@@ -6,81 +6,65 @@ class Payroll{
     public $payroll_id;
     public $employee_id;
     public $pay_period;
-    public $gross_salary;
-    public $sss_employee;
-    public $sss_employer;
-    public $philhealth_employee;
-    public $philhealth_employer;
-    public $pagibig_employee;
-    public $pagibig_employer;
-    public $income_tax;
-    public $total_deductions;
-    public $net_salary;
+    public $total_hours;
+    public $gross_pay;
+    public $net_pay;
 
     public function __construct($db){
         $this->conn = $db;
     }
 
-    public function create(){
-        $query = "INSERT INTO " . $this->table_name . " (employee_id,pay_period,gross_salary,sss_employee,sss_employer,philhealth_employee,philhealth_employer,pagibig_employee,pagibig_employer,income_tax,total_deductions,net_salary) VALUES (:eid,:pp,:gs,:se,:ser,:pe,:per,:pge,:pger,:it,:td,:ns)";
+    public function readAll(){
+        $query = "SELECT p.payroll_id, p.employee_id, u.name, p.pay_period, p.total_hours, p.gross_pay, p.net_pay FROM " . $this->table_name . " p JOIN employee e ON p.employee_id=e.employee_id JOIN user u ON e.user_id=u.user_id ORDER BY p.payroll_id DESC";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':eid',$this->employee_id);
-        $stmt->bindParam(':pp',$this->pay_period);
-        $stmt->bindParam(':gs',$this->gross_salary);
-        $stmt->bindParam(':se',$this->sss_employee);
-        $stmt->bindParam(':ser',$this->sss_employer);
-        $stmt->bindParam(':pe',$this->philhealth_employee);
-        $stmt->bindParam(':per',$this->philhealth_employer);
-        $stmt->bindParam(':pge',$this->pagibig_employee);
-        $stmt->bindParam(':pger',$this->pagibig_employer);
-        $stmt->bindParam(':it',$this->income_tax);
-        $stmt->bindParam(':td',$this->total_deductions);
-        $stmt->bindParam(':ns',$this->net_salary);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    public function readByEmployee(){
+        $query = "SELECT payroll_id, pay_period, total_hours, gross_pay, net_pay FROM " . $this->table_name . " WHERE employee_id = :employee_id ORDER BY pay_period DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':employee_id', $this->employee_id);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    public function create(){
+        $query = "INSERT INTO " . $this->table_name . " (employee_id, pay_period, total_hours, gross_pay, net_pay) VALUES (:employee_id, :pay_period, :total_hours, :gross_pay, :net_pay)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':employee_id', $this->employee_id);
+        $stmt->bindParam(':pay_period', $this->pay_period);
+        $stmt->bindParam(':total_hours', $this->total_hours);
+        $stmt->bindParam(':gross_pay', $this->gross_pay);
+        $stmt->bindParam(':net_pay', $this->net_pay);
         return $stmt->execute();
     }
 
-    public function calculateDeductions($salary) {
-        $this->gross_salary = $salary;
+    public function calculatePayroll($employee_id, $pay_period_start, $pay_period_end) {
+        // Get employee hourly rate
+        $query = "SELECT hourly_rate FROM employee WHERE employee_id = :employee_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':employee_id', $employee_id);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $hourly_rate = $row['hourly_rate'];
 
-        // SSS: 15% of MSC, 5% employee, 10% employer
-        // MSC is capped at certain amount, but for simplicity, assume salary is MSC
-        $sss_total = $salary * 0.15;
-        $this->sss_employee = $sss_total * (5/15);
-        $this->sss_employer = $sss_total * (10/15);
+        // Calculate total hours from shifts in pay period
+        $query = "SELECT SUM(TIMESTAMPDIFF(HOUR, start_time, end_time)) as total_hours FROM shift WHERE employee_id = :employee_id AND shift_date BETWEEN :start AND :end";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':employee_id', $employee_id);
+        $stmt->bindParam(':start', $pay_period_start);
+        $stmt->bindParam(':end', $pay_period_end);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->total_hours = $row['total_hours'] ?: 0;
 
-        // PhilHealth: 5% of basic monthly salary, ceiling ₱100,000, 2.5% each
-        $philhealth_base = min($salary, 100000);
-        $philhealth_total = $philhealth_base * 0.05;
-        $this->philhealth_employee = $philhealth_total / 2;
-        $this->philhealth_employer = $philhealth_total / 2;
+        $this->gross_pay = $this->total_hours * $hourly_rate;
 
-        // Pag-IBIG: 2% of monthly compensation, max ₱10,000, 1% each
-        $pagibig_base = min($salary, 10000);
-        $pagibig_total = $pagibig_base * 0.02;
-        $this->pagibig_employee = $pagibig_total / 2;
-        $this->pagibig_employer = $pagibig_total / 2;
-
-        // Income Tax: Based on taxable income = gross - pre-tax deductions
-        $taxable_income = $salary - ($this->sss_employee + $this->philhealth_employee + $this->pagibig_employee);
-        
-        // Philippine Income Tax brackets (monthly approximation for withholding)
-        // Actually, BIR has specific withholding tables, but simplified:
-        if ($taxable_income <= 250000 / 12) { // ~20833
-            $this->income_tax = 0;
-        } elseif ($taxable_income <= 400000 / 12) { // ~33333
-            $this->income_tax = ($taxable_income - 20833.33) * 0.20;
-        } elseif ($taxable_income <= 800000 / 12) { // ~66666
-            $this->income_tax = (12500 * 0.20) + ($taxable_income - 33333.33) * 0.25;
-        } elseif ($taxable_income <= 2000000 / 12) { // ~166666
-            $this->income_tax = (12500 * 0.20) + (33333.33 * 0.25) + ($taxable_income - 66666.67) * 0.30;
-        } elseif ($taxable_income <= 8000000 / 12) { // ~666666
-            $this->income_tax = (12500 * 0.20) + (33333.33 * 0.25) + (100000 * 0.30) + ($taxable_income - 166666.67) * 0.32;
-        } else {
-            $this->income_tax = (12500 * 0.20) + (33333.33 * 0.25) + (100000 * 0.30) + (500000 * 0.32) + ($taxable_income - 666666.67) * 0.35;
-        }
-
-        $this->total_deductions = $this->sss_employee + $this->philhealth_employee + $this->pagibig_employee + $this->income_tax;
-        $this->net_salary = $salary - $this->total_deductions;
+        // Calculate deductions
+        $query = "SELECT SUM(amount) as total_deductions FROM deduction WHERE payroll_id IN (SELECT payroll_id FROM payroll WHERE employee_id = :employee_id AND pay_period = :pay_period)";
+        // For new payroll, deductions will be added after creation, so for now net_pay = gross_pay
+        $this->net_pay = $this->gross_pay;
     }
 }
 

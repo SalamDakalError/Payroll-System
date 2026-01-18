@@ -19,6 +19,23 @@ class Attendance{
         $stmt->execute();
         return $stmt;
     }
+
+    public function create(){
+        $query = "INSERT INTO " . $this->table_name . " (employee_id, date, status) VALUES (:eid, :date, :status)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':eid', $this->employee_id);
+        $stmt->bindParam(':date', $this->date);
+        $stmt->bindParam(':status', $this->status);
+        return $stmt->execute();
+    }
+
+    public function update(){
+        $query = "UPDATE " . $this->table_name . " SET status = :status WHERE attendance_id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':status', $this->status);
+        $stmt->bindParam(':id', $this->attendance_id);
+        return $stmt->execute();
+    }
 }
 
 ?>
