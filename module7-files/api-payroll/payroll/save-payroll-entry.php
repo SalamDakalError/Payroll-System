@@ -28,22 +28,16 @@ try {
 
     $payroll_id = $db->lastInsertId();
 
-    // Insert deductions
-    $deductions = [
-        ['SSS', $data['sss_deduction']],
-        ['PhilHealth', $data['philhealth_deduction']],
-        ['Pag-IBIG', $data['pagibig_deduction']],
-        ['Income Tax', $data['income_tax_deduction']]
-    ];
-
-    $deduction_query = "INSERT INTO deduction (payroll_id, deduction_type, amount) VALUES (?, ?, ?)";
+    // Insert deductions using the correct table structure
+    $deduction_query = "INSERT INTO deduction (payroll_id, sss_amount, philhealth_amount, pagibig_amount, income_tax_amount) VALUES (?, ?, ?, ?, ?)";
     $deduction_stmt = $db->prepare($deduction_query);
-
-    foreach ($deductions as $deduction) {
-        if ($deduction[1] > 0) {
-            $deduction_stmt->execute([$payroll_id, $deduction[0], $deduction[1]]);
-        }
-    }
+    $deduction_stmt->execute([
+        $payroll_id,
+        $data['sss_deduction'],
+        $data['philhealth_deduction'],
+        $data['pagibig_deduction'],
+        $data['income_tax_deduction']
+    ]);
 
     $db->commit();
 

@@ -90,10 +90,10 @@
               <div style="border-top:1px solid #e6eef7;padding-top:8px"><strong>Gross Pay:</strong> $<span id="grossPay">0.00</span></div>
             </div>
             <div class="col-6">
-              <div style="margin-bottom:8px"><strong>SSS (4.5%):</strong> $<span id="sssDeduction">0.00</span></div>
-              <div style="margin-bottom:8px"><strong>PhilHealth (2.75%):</strong> $<span id="philhealthDeduction">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>SSS (15%):</strong> $<span id="sssDeduction">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>PhilHealth (5%):</strong> $<span id="philhealthDeduction">0.00</span></div>
               <div style="margin-bottom:8px"><strong>Pag-IBIG (2%):</strong> $<span id="pagibigDeduction">0.00</span></div>
-              <div style="margin-bottom:8px"><strong>Income Tax (15%):</strong> $<span id="incomeTaxDeduction">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>Income Tax:</strong> $<span id="incomeTaxDeduction">0.00</span></div>
               <div style="border-top:1px solid #e6eef7;padding-top:8px"><strong>Total Deductions:</strong> $<span id="totalDeductions">0.00</span></div>
             </div>
           </div>
@@ -202,11 +202,26 @@
       const totalHours = regularHours + overtimeHours;
       const grossPay = totalHours * hourlyRate;
 
-      // Calculate deductions
-      const sssDeduction = grossPay * 0.045; // 4.5%
-      const philhealthDeduction = grossPay * 0.0275; // 2.75%
-      const pagibigDeduction = grossPay * 0.02; // 2%
-      const incomeTaxDeduction = grossPay * 0.15; // 15%
+      // Calculate deductions based on Philippine law rates
+      const sssDeduction = grossPay * 0.15; // 15% SSS contribution (employee portion)
+      const philhealthDeduction = grossPay * 0.05; // 5% PhilHealth contribution (2025 rate)
+      const pagibigDeduction = grossPay * 0.02; // 2% Pag-IBIG contribution
+
+      // Calculate taxable income (gross pay minus mandatory deductions)
+      const taxableIncome = grossPay - sssDeduction - philhealthDeduction - pagibigDeduction;
+
+      // Calculate income tax based on TRAIN Law brackets (simplified monthly calculation)
+      let incomeTaxDeduction = 0;
+      if (taxableIncome > 66667) { // Monthly equivalent of P250,000 annual exemption
+        // Apply progressive tax rates
+        if (taxableIncome <= 166667) { // Up to P2M annual
+          incomeTaxDeduction = (taxableIncome - 66667) * 0.15;
+        } else if (taxableIncome <= 266667) { // P2M to P3M annual
+          incomeTaxDeduction = (166667 - 66667) * 0.15 + (taxableIncome - 166667) * 0.20;
+        } else { // Above P3M annual
+          incomeTaxDeduction = (166667 - 66667) * 0.15 + (266667 - 166667) * 0.20 + (taxableIncome - 266667) * 0.25;
+        }
+      }
 
       const totalDeductions = sssDeduction + philhealthDeduction + pagibigDeduction + incomeTaxDeduction;
       const netPay = grossPay - totalDeductions;
@@ -255,11 +270,24 @@
       const totalHours = regularHours + overtimeHours;
       const grossPay = totalHours * hourlyRate;
 
-      // Calculate deductions
-      const sssDeduction = grossPay * 0.045;
-      const philhealthDeduction = grossPay * 0.0275;
-      const pagibigDeduction = grossPay * 0.02;
-      const incomeTaxDeduction = grossPay * 0.15;
+      // Calculate deductions with updated Philippine law rates
+      const sssDeduction = grossPay * 0.15; // 15% SSS
+      const philhealthDeduction = grossPay * 0.05; // 5% PhilHealth
+      const pagibigDeduction = grossPay * 0.02; // 2% Pag-IBIG
+
+      // Calculate taxable income and income tax
+      const taxableIncome = grossPay - sssDeduction - philhealthDeduction - pagibigDeduction;
+      let incomeTaxDeduction = 0;
+      if (taxableIncome > 66667) {
+        if (taxableIncome <= 166667) {
+          incomeTaxDeduction = (taxableIncome - 66667) * 0.15;
+        } else if (taxableIncome <= 266667) {
+          incomeTaxDeduction = (166667 - 66667) * 0.15 + (taxableIncome - 166667) * 0.20;
+        } else {
+          incomeTaxDeduction = (166667 - 66667) * 0.15 + (266667 - 166667) * 0.20 + (taxableIncome - 266667) * 0.25;
+        }
+      }
+
       const totalDeductions = sssDeduction + philhealthDeduction + pagibigDeduction + incomeTaxDeduction;
       const netPay = grossPay - totalDeductions;
 
