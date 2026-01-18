@@ -10,7 +10,7 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">U</div><h1>Manage Users</h1></div>
-      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="change-password.html">Change Password</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="change-password.html">Change Password</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="card">
@@ -28,32 +28,24 @@
   </div>
   <script src="../assets/js/main.js"></script>
   <script>
-    let roles = [];
-
-    // Load roles
-    apiFetch('/Payroll-System/module7-files/api-payroll/roles/read-all.php').then(json=>{
-      if(json && json.records){
-        roles = json.records;
-        loadUsers();
-      }
+    // Wait for DOM and main.js to load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUsers();
     });
 
     // Load users
     function loadUsers(){
-      apiFetch('/Payroll-System/module7-files/api-payroll/users/read-all.php').then(json=>{
+      apiFetch('../../users/read-all.php').then(json=>{
         const tbody = document.querySelector('#usersTable tbody');
         if(json && json.records){
           tbody.innerHTML = json.records.map(u=>{
-            const role = roles.find(r=>r.role_id == u.role_id);
-            const roleName = role ? role.role_name : u.role_id;
-            return `<tr><td>${u.name}</td><td>${u.email}</td><td>${roleName}</td><td><a class='btn secondary' href='edit-user.html?id=${u.user_id}'>Edit</a> <button class='btn danger delete-user' data-id='${u.user_id}'>Delete</button></td></tr>`;
+            return `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.role_name || u.role_id}</td><td><a class='btn secondary' href='edit-user.html?id=${u.user_id}'>Edit</a> <button class='btn danger delete-user' data-id='${u.user_id}'>Delete</button></td></tr>`;
           }).join('');
-        } else tbody.innerHTML = '<tr><td colspan="4" class="small">No users</td></tr>';
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" class="small">No users</td></tr>';
+        }
       });
     }
-
-    // Initial load
-    loadUsers();
 
     // Handle delete button clicks
     document.addEventListener('click', function(e) {
@@ -67,7 +59,7 @@
     });
 
     function deleteUser(userId) {
-      apiFetch(`/Payroll-System/module7-files/api-payroll/users/delete.php?id=${userId}`, {
+      apiFetch(`../../users/delete.php?id=${userId}`, {
         method: 'POST'
       }).then(res => {
         if (res && res.success) {

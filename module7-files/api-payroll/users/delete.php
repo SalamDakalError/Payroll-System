@@ -7,17 +7,23 @@ include_once '../objects/user.php';
 $db = (new Database())->getConnection();
 $user = new User($db);
 
-$data = json_decode(file_get_contents("php://input"));
+// Check if ID is in query parameter or POST body
+$user_id = isset($_GET['id']) ? $_GET['id'] : (isset($_POST['id']) ? $_POST['id'] : null);
 
-if (!empty($data->user_id)) {
-    $user->user_id = $data->user_id;
+if (!$user_id) {
+    $data = json_decode(file_get_contents("php://input"));
+    $user_id = $data->user_id ?? null;
+}
+
+if (!empty($user_id)) {
+    $user->user_id = $user_id;
 
     if ($user->delete()) {
-        echo json_encode(array("message" => "User deleted successfully."));
+        echo json_encode(array("success" => true, "message" => "User deleted successfully."));
     } else {
-        echo json_encode(array("message" => "Unable to delete user."));
+        echo json_encode(array("success" => false, "message" => "Unable to delete user."));
     }
 } else {
-    echo json_encode(array("message" => "User ID required."));
+    echo json_encode(array("success" => false, "message" => "User ID required."));
 }
 ?>

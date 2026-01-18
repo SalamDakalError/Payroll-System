@@ -8,20 +8,21 @@ class User{
     public $email;
     public $password;
     public $role_id;
+    public $role_name;
 
     public function __construct($db){
         $this->conn = $db;
     }
 
     public function readAll(){
-        $query = "SELECT user_id, name, email, role_id FROM " . $this->table_name . " ORDER BY user_id DESC";
+        $query = "SELECT u.user_id, u.name, u.email, u.role_id, r.role_name FROM " . $this->table_name . " u LEFT JOIN role r ON u.role_id = r.role_id ORDER BY u.user_id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
     }
 
     public function readOne(){
-        $query = "SELECT user_id, name, email, password, role_id FROM " . $this->table_name . " WHERE user_id = :user_id";
+        $query = "SELECT u.user_id, u.name, u.email, u.password, u.role_id, r.role_name FROM " . $this->table_name . " u LEFT JOIN role r ON u.role_id = r.role_id WHERE u.user_id = :user_id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $this->user_id);
         $stmt->execute();
@@ -31,6 +32,7 @@ class User{
             $this->email = $row['email'];
             $this->password = $row['password'];
             $this->role_id = $row['role_id'];
+            $this->role_name = $row['role_name'];
         }
     }
 

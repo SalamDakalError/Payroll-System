@@ -10,23 +10,22 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">S</div><h1>Payslip Management</h1></div>
-      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="payroll.html">Payroll</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="payroll.html">Payroll</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="topbar" style="padding:0;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <h3 style="margin:0">Issue Payslips</h3>
         <div class="search-row">
-          <select id="payPeriodFilter">
+          <select class="form-control" id="payPeriodFilter" style="width:auto">
             <option value="">All Periods</option>
-            <option value="<?php echo date('Y-m'); ?>"><?php echo date('F Y'); ?></option>
-            <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>"><?php echo date('F Y', strtotime('-1 month')); ?></option>
+            <!-- Options will be populated by JavaScript -->
           </select>
           <button class="btn" id="filterBtn">Filter</button>
         </div>
       </div>
 
-      <div id="message"></div>
+      <div id="message" style="margin-bottom:16px"></div>
 
       <table>
         <thead>
@@ -40,24 +39,6 @@
         </thead>
         <tbody id="payslipTable">
           <tr><td colspan="5">Loading payroll records...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h3>Issued Payslips</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Pay Period</th>
-            <th>Net Salary</th>
-            <th>Issued Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="issuedPayslipsTable">
-          <tr><td colspan="5">Loading issued payslips...</td></tr>
         </tbody>
       </table>
     </div>
@@ -88,7 +69,7 @@
 
     async function loadPayrollRecords(period = '') {
       try {
-        let url = '../payroll/read-all.php';
+        let url = '../../payroll/read-all.php';
         if (period) {
           url += `?period=${period}`;
         }
@@ -106,16 +87,18 @@
 
     async function loadIssuedPayslips() {
       try {
-        const response = await fetch('../payslips/read-all.php');
+        const response = await fetch('../../payslips/read-all.php');
         const result = await response.json();
         if (result.success) {
           issuedPayslips = result.records;
           renderIssuedPayslipsTable();
         }
       } catch (error) {
-        console.error('Error loading payslips:', error);
+        console.error('Error loading issued payslips:', error);
       }
     }
+
+
 
     function renderPayslipTable() {
       const tbody = document.getElementById('payslipTable');
@@ -125,16 +108,16 @@
       }
 
       tbody.innerHTML = payrollRecords.map(record => {
-        const hasPayslip = issuedPayslips.some(p => p.payroll_id == record.payroll_id);
+        const isIssued = record.payslip_status === 'issued';
         return `
           <tr>
             <td>${record.employee_name}</td>
             <td>${record.pay_period}</td>
-            <td>$${parseFloat(record.net_salary).toFixed(2)}</td>
-            <td><span class="badge ${hasPayslip ? 'present' : 'absent'}">${hasPayslip ? 'Issued' : 'Pending'}</span></td>
+            <td>$${parseFloat(record.net_pay).toFixed(2)}</td>
+            <td><span class="badge ${isIssued ? 'present' : 'absent'}">${isIssued ? 'Issued' : 'Pending'}</span></td>
             <td>
               <button class="btn secondary" onclick="viewPayslip(${record.payroll_id})">View</button>
-              ${!hasPayslip ? `<button class="btn" onclick="showIssueModal(${record.payroll_id})">Issue</button>` : ''}
+              ${!isIssued ? `<button class="btn" onclick="showIssueModal(${record.payroll_id})">Issue</button>` : ''}
             </td>
           </tr>
         `;
@@ -164,7 +147,7 @@
 
     async function viewPayslip(payrollId) {
       try {
-        const response = await fetch(`../payroll/read-one.php?id=${payrollId}`);
+        const response = await fetch(`../../payroll/read-one.php?id=${payrollId}`);
         const result = await response.json();
         if (result.success) {
           showPayslipModal(result.payroll);
@@ -178,6 +161,9 @@
       currentPayrollId = payroll.payroll_id;
       const content = document.getElementById('payslipContent');
 
+      // Calculate total deductions
+      const totalDeductions = Object.values(payroll.deductions || {}).reduce((sum, amount) => sum + amount, 0);
+
       content.innerHTML = `
         <div style="border:1px solid #e6eef7;padding:16px;border-radius:8px;">
           <h4 style="text-align:center;margin-bottom:16px;">PAYSLIP</h4>
@@ -186,13 +172,13 @@
             <div><strong>Pay Period:</strong> ${payroll.pay_period}</div>
           </div>
           <table style="width:100%;border-collapse:collapse;">
-            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;"><strong>Gross Salary:</strong></td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">$${parseFloat(payroll.gross_salary).toFixed(2)}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">SSS Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.sss_employee).toFixed(2)}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">PhilHealth Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.philhealth_employee).toFixed(2)}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">Pag-IBIG Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.pagibig_employee).toFixed(2)}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">Income Tax:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.income_tax).toFixed(2)}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;font-weight:bold;">Total Deductions:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;font-weight:bold;">-$${parseFloat(payroll.total_deductions).toFixed(2)}</td></tr>
-            <tr><td style="padding:8px;font-weight:bold;font-size:16px;">Net Salary:</td><td style="padding:8px;text-align:right;font-weight:bold;font-size:16px;">$${parseFloat(payroll.net_salary).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;"><strong>Gross Salary:</strong></td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">$${parseFloat(payroll.gross_pay).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">SSS Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.deductions?.['SSS'] || 0).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">PhilHealth Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.deductions?.['PhilHealth'] || 0).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">Pag-IBIG Deduction:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.deductions?.['Pag-IBIG'] || 0).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;">Income Tax:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;">-$${parseFloat(payroll.deductions?.['Income Tax'] || 0).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #e6eef7;font-weight:bold;">Total Deductions:</td><td style="padding:8px;border-bottom:1px solid #e6eef7;text-align:right;font-weight:bold;">-$${parseFloat(totalDeductions).toFixed(2)}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;font-size:16px;">Net Salary:</td><td style="padding:8px;text-align:right;font-weight:bold;font-size:16px;">$${parseFloat(payroll.net_pay).toFixed(2)}</td></tr>
           </table>
         </div>
       `;
@@ -209,7 +195,7 @@
       if (!currentPayrollId) return;
 
       try {
-        const response = await fetch('../payslips/create.php', {
+        const response = await fetch('../../payslips/create.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ payroll_id: currentPayrollId })
@@ -218,16 +204,15 @@
         const result = await response.json();
 
         if (result.success) {
-          document.getElementById('message').innerHTML = '<div class="alert alert-success">Payslip issued successfully</div>';
+          document.getElementById('message').innerHTML = '<div class="alert alert-success">' + result.message + '</div>';
           document.getElementById('payslipModal').style.display = 'none';
           loadPayrollRecords();
-          loadIssuedPayslips();
         } else {
-          alert('Error: ' + result.message);
+          document.getElementById('message').innerHTML = '<div class="alert alert-error">' + result.message + '</div>';
         }
       } catch (error) {
         console.error('Error issuing payslip:', error);
-        alert('An error occurred while issuing the payslip');
+        document.getElementById('message').innerHTML = '<div class="alert alert-error">An error occurred while issuing the payslip</div>';
       }
     }
 
@@ -256,7 +241,29 @@
       }
     });
 
+    function populatePayPeriodSelect() {
+      const select = document.getElementById('payPeriodFilter');
+      const currentDate = new Date();
+      
+      // Current month
+      const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM format
+      const currentMonthName = currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      
+      // Previous month
+      const prevDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const prevMonth = prevDate.toISOString().slice(0, 7);
+      const prevMonthName = prevDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      
+      // Add options after "All Periods"
+      select.innerHTML = `
+        <option value="">All Periods</option>
+        <option value="${currentMonth}">${currentMonthName}</option>
+        <option value="${prevMonth}">${prevMonthName}</option>
+      `;
+    }
+
     // Load data when page loads
+    populatePayPeriodSelect();
     loadPayrollRecords();
     loadIssuedPayslips();
   </script>

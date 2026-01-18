@@ -10,13 +10,13 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">EMP</div><h1>My Payroll</h1></div>
-      <div class="nav"><a class="btn secondary" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn secondary" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="card">
       <h3>My Payroll Records</h3>
-      <table><thead><tr><th>Pay Period</th><th>Total Hours</th><th>Gross Pay</th><th>Net Pay</th></tr></thead>
-      <tbody id="payroll-table"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+      <table><thead><tr><th>Pay Period</th><th>Total Hours</th><th>Gross Pay</th><th>Deductions</th><th>Net Pay</th></tr></thead>
+      <tbody id="payroll-table"><tr><td colspan="5">Loading...</td></tr></tbody></table>
     </div>
   </div>
   <script src="../assets/js/main.js"></script>
@@ -26,15 +26,32 @@
       .then(response => response.json())
       .then(data => {
         if (data.logged_in && data.user.role_id == 3) {
-          fetch('/Payroll-System/module7-files/api-payroll/payroll/read-by-employee.php?employee_id=' + data.user.employee_id)
-            .then(response => response.json())
-            .then(data => {
-              const tbody = document.getElementById('payroll-table');
-              tbody.innerHTML = data.records.map(p => 
-                `<tr><td>${p.pay_period}</td><td>${p.total_hours}</td><td>$${p.gross_pay}</td><td>$${p.net_pay}</td></tr>`
-              ).join('');
-            });
+          // Load payroll records for current user
+          return fetch('/Payroll-System/module7-files/api-payroll/payroll/read-current.php');
+        } else {
+          throw new Error('Not logged in as employee');
         }
+      })
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('payroll-table');
+        if (data.success && data.records.length > 0) {
+          tbody.innerHTML = data.records.map(p =>
+            `<tr>
+              <td>${p.pay_period}</td>
+              <td>${parseFloat(p.total_hours || 0).toFixed(2)}</td>
+              <td>$${parseFloat(p.gross_pay || 0).toFixed(2)}</td>
+              <td>$${parseFloat(p.deductions || 0).toFixed(2)}</td>
+              <td>$${parseFloat(p.net_pay || 0).toFixed(2)}</td>
+            </tr>`
+          ).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5">No payroll records found</td></tr>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading payroll:', error);
+        document.getElementById('payroll-table').innerHTML = '<tr><td colspan="5">Error loading payroll records</td></tr>';
       });
   </script>
 </body>

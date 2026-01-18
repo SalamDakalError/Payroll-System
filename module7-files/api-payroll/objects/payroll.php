@@ -7,6 +7,7 @@ class Payroll{
     public $employee_id;
     public $pay_period;
     public $total_hours;
+    public $hours_worked;
     public $gross_pay;
     public $net_pay;
 
@@ -15,14 +16,14 @@ class Payroll{
     }
 
     public function readAll(){
-        $query = "SELECT p.payroll_id, p.employee_id, u.name, p.pay_period, p.total_hours, p.gross_pay, p.net_pay FROM " . $this->table_name . " p JOIN employee e ON p.employee_id=e.employee_id JOIN user u ON e.user_id=u.user_id ORDER BY p.payroll_id DESC";
+        $query = "SELECT p.payroll_id, p.employee_id, u.name, p.pay_period, p.total_hours, p.hours_worked, p.gross_pay, p.net_pay FROM " . $this->table_name . " p JOIN employee e ON p.employee_id=e.employee_id JOIN user u ON e.user_id=u.user_id ORDER BY p.payroll_id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
     }
 
     public function readByEmployee(){
-        $query = "SELECT payroll_id, pay_period, total_hours, gross_pay, net_pay FROM " . $this->table_name . " WHERE employee_id = :employee_id ORDER BY pay_period DESC";
+        $query = "SELECT payroll_id, pay_period, total_hours, hours_worked, gross_pay, net_pay FROM " . $this->table_name . " WHERE employee_id = :employee_id ORDER BY pay_period DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':employee_id', $this->employee_id);
         $stmt->execute();
@@ -30,11 +31,12 @@ class Payroll{
     }
 
     public function create(){
-        $query = "INSERT INTO " . $this->table_name . " (employee_id, pay_period, total_hours, gross_pay, net_pay) VALUES (:employee_id, :pay_period, :total_hours, :gross_pay, :net_pay)";
+        $query = "INSERT INTO " . $this->table_name . " (employee_id, pay_period, total_hours, hours_worked, gross_pay, net_pay) VALUES (:employee_id, :pay_period, :total_hours, :hours_worked, :gross_pay, :net_pay)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':employee_id', $this->employee_id);
         $stmt->bindParam(':pay_period', $this->pay_period);
         $stmt->bindParam(':total_hours', $this->total_hours);
+        $stmt->bindParam(':hours_worked', $this->hours_worked);
         $stmt->bindParam(':gross_pay', $this->gross_pay);
         $stmt->bindParam(':net_pay', $this->net_pay);
         return $stmt->execute();

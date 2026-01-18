@@ -4,68 +4,86 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+  <style>
+    .search-row {
+      position: relative;
+    }
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e6eef7;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    .search-result-item:hover {
+      background-color: #f8f9fa;
+    }
+  </style>
   <title>Manage Employees</title>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">E</div><h1>Manage Employees</h1></div>
-      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="topbar" style="padding:0;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <h3 style="margin:0">Manage Employees</h3>
         <button class="btn" id="addEmployeeBtn">Add Employee</button>
       </div>
 
       <div id="employeeForm" style="display:none;margin-bottom:16px;padding:16px;border:1px solid #e6eef7;border-radius:8px">
         <h4 id="formTitle">Add New Employee</h4>
-        <form id="employeeFormData">
+        <form id="employeeFormData" style="display:flex;flex-direction:column;gap:16px;max-width:600px">
           <input type="hidden" name="employee_id" id="employee_id">
+          <input type="hidden" name="salary" id="salary">
           <div class="grid">
             <div class="col-6">
-              <label>User:</label>
-              <select name="user_id" id="user_id" required>
-                <option value="">Select User</option>
+              <label style="display:block;margin-bottom:4px;font-weight:600">Employee User:</label>
+              <div class="search-row">
+                <input class="form-control" id="userSearch" placeholder="Search employee users..." autocomplete="off">
+                <div id="userSearchResults" class="search-results" style="display:none;max-height:200px;overflow-y:auto;border:1px solid #e6eef7;border-top:none;background:white;z-index:1000"></div>
+              </div>
+              <input type="hidden" name="user_id" id="user_id" required>
+            </div>
+            <div class="col-6">
+              <label style="display:block;margin-bottom:4px;font-weight:600">Job Title:</label>
+              <select class="form-control" name="job_title_id" id="job_title_id" required>
+                <option value="">Select Job Title</option>
               </select>
             </div>
-            <div class="col-6">
-              <label>Department:</label>
-              <select name="department_id" id="department_id" required>
-                <option value="">Select Department</option>
-              </select>
-            </div>
-            <div class="col-6">
-              <label>Salary:</label>
-              <input type="number" name="salary" id="salary" step="0.01" required>
-            </div>
-            <div class="col-6">
-              <label>Hire Date:</label>
-              <input type="date" name="hire_date" id="hire_date" required>
+            <div class="col-12">
+              <label style="display:block;margin-bottom:4px;font-weight:600">Hire Date:</label>
+              <input class="form-control" type="date" name="hire_date" id="hire_date" required>
             </div>
           </div>
-          <div style="margin-top:16px">
+          <div style="display:flex;gap:10px;">
             <button type="submit" class="btn" id="saveBtn">Save Employee</button>
             <button type="button" class="btn secondary" id="cancelBtn">Cancel</button>
           </div>
         </form>
       </div>
 
-      <div id="message"></div>
+      <div id="message" style="margin-bottom:16px"></div>
 
       <table>
         <thead>
           <tr>
             <th>Name</th>
-            <th>Department</th>
-            <th>Salary</th>
-            <th>Hire Date</th>
+            <th>Job Title</th>
+            <th>Pay Rate</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="employeesTable">
-          <tr><td colspan="5">Loading employees...</td></tr>
+          <tr><td colspan="4">Loading employees...</td></tr>
         </tbody>
       </table>
     </div>
@@ -74,11 +92,11 @@
   <script>
     let employees = [];
     let users = [];
-    let departments = [];
+    let jobTitles = [];
 
     async function loadEmployees() {
       try {
-        const response = await fetch('manage-employees.php');
+        const response = await fetch('manage-employees.php', { credentials: 'same-origin' });
         const result = await response.json();
 
         if (result.success) {
@@ -93,9 +111,9 @@
 
     async function loadUsers() {
       try {
-        const response = await fetch('../users/read.php');
+        const response = await fetch('../../users/read-all.php', { credentials: 'same-origin' });
         const result = await response.json();
-        if (result.success) {
+        if (result.records) {
           users = result.records;
         }
       } catch (error) {
@@ -103,46 +121,76 @@
       }
     }
 
-    async function loadDepartments() {
+    async function loadJobTitles() {
       try {
-        const response = await fetch('../departments/read-all.php');
+        const response = await fetch('../../job-titles/read-all.php', { credentials: 'same-origin' });
         const result = await response.json();
-        if (result.success) {
-          departments = result.records;
+        if (result.records) {
+          jobTitles = result.records;
         }
       } catch (error) {
-        console.error('Error loading departments:', error);
+        console.error('Error loading job titles:', error);
       }
     }
 
     function renderEmployeesTable() {
       const tbody = document.getElementById('employeesTable');
       if (employees.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No employees found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4">No employees found</td></tr>';
         return;
       }
 
       tbody.innerHTML = employees.map(emp => `
         <tr>
           <td>${emp.name}</td>
-          <td>${emp.department_name}</td>
-          <td>$${parseFloat(emp.salary).toFixed(2)}</td>
-          <td>${emp.hire_date}</td>
+          <td>${emp.job_title || 'Not assigned'}</td>
+          <td>$${parseFloat(emp.pay_rate || 0).toFixed(2)}</td>
           <td><button class="btn secondary" onclick="editEmployee(${emp.employee_id})">Edit</button></td>
         </tr>
       `).join('');
     }
 
     function populateFormSelects() {
-      const userSelect = document.getElementById('user_id');
-      userSelect.innerHTML = '<option value="">Select User</option>' +
-        users.filter(u => !employees.some(e => e.user_id == u.user_id)).map(u =>
-          `<option value="${u.user_id}">${u.name} (${u.email})</option>`
-        ).join('');
+      // Only populate job titles now
+      const jobTitleSelect = document.getElementById('job_title_id');
+      jobTitleSelect.innerHTML = '<option value="">Select Job Title</option>' +
+        jobTitles.map(jt => `<option value="${jt.job_title_id}" data-pay-rate="${jt.pay_rate}">${jt.job_title} ($${parseFloat(jt.pay_rate).toFixed(2)}/hr)</option>`).join('');
+    }
 
-      const deptSelect = document.getElementById('department_id');
-      deptSelect.innerHTML = '<option value="">Select Department</option>' +
-        departments.map(d => `<option value="${d.department_id}">${d.department_name}</option>`).join('');
+    function filterUsers() {
+      const searchTerm = document.getElementById('userSearch').value.toLowerCase().trim();
+      const resultsDiv = document.getElementById('userSearchResults');
+
+      if (!searchTerm) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      const availableUsers = users.filter(u => u.role_id == 3 && !employees.some(e => e.user_id == u.user_id));
+      const filtered = availableUsers.filter(u =>
+        u.name.toLowerCase().includes(searchTerm) ||
+        u.email.toLowerCase().includes(searchTerm)
+      );
+
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding:8px;color:#666">No users found</div>';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+
+      resultsDiv.innerHTML = filtered.map(u => `
+        <div class="search-result-item" data-user-id="${u.user_id}" style="padding:8px;border-bottom:1px solid #f0f0f0;cursor:pointer">
+          <strong>${u.name}</strong><br>
+          <small style="color:#666">${u.email}</small>
+        </div>
+      `).join('');
+      resultsDiv.style.display = 'block';
+    }
+
+    function selectUser(userId, userName, userEmail) {
+      document.getElementById('user_id').value = userId;
+      document.getElementById('userSearch').value = `${userName} (${userEmail})`;
+      document.getElementById('userSearchResults').style.display = 'none';
     }
 
     function showEmployeeForm(employee = null) {
@@ -153,15 +201,22 @@
         document.getElementById('formTitle').textContent = 'Edit Employee';
         document.getElementById('employee_id').value = employee.employee_id;
         document.getElementById('user_id').value = employee.user_id;
-        document.getElementById('user_id').disabled = true; // Can't change user
-        document.getElementById('department_id').value = employee.department_id;
-        document.getElementById('salary').value = employee.salary;
-        document.getElementById('hire_date').value = employee.hire_date;
+        // Find user details for display
+        const user = users.find(u => u.user_id == employee.user_id);
+        document.getElementById('userSearch').value = user ? `${user.name} (${user.email})` : 'Unknown User';
+        document.getElementById('userSearch').disabled = true; // Can't change user in edit mode
+        document.getElementById('job_title_id').value = employee.job_title_id;
+        document.getElementById('salary').value = employee.pay_rate;
+        document.getElementById('hire_date').value = employee.hire_date || '';
       } else {
         document.getElementById('formTitle').textContent = 'Add New Employee';
         document.getElementById('employeeFormData').reset();
         document.getElementById('employee_id').value = '';
-        document.getElementById('user_id').disabled = false;
+        document.getElementById('salary').value = '';
+        document.getElementById('userSearch').value = '';
+        document.getElementById('userSearch').disabled = false;
+        document.getElementById('user_id').value = '';
+        document.getElementById('userSearchResults').style.display = 'none';
       }
     }
 
@@ -174,7 +229,7 @@
       if (employee) {
         // Load full employee data
         try {
-          const response = await fetch(`../employees/read-one.php?id=${employeeId}`);
+          const response = await fetch(`../../employees/read-one.php?id=${employeeId}`, { credentials: 'same-origin' });
           const result = await response.json();
           if (result.success && result.employee) {
             showEmployeeForm(result.employee);
@@ -190,8 +245,41 @@
 
     document.getElementById('cancelBtn').addEventListener('click', hideEmployeeForm);
 
+    document.getElementById('userSearch').addEventListener('input', filterUsers);
+
+    document.getElementById('userSearch').addEventListener('focus', filterUsers);
+
+    document.getElementById('userSearchResults').addEventListener('click', (e) => {
+      const resultItem = e.target.closest('.search-result-item');
+      if (resultItem) {
+        const userId = resultItem.getAttribute('data-user-id');
+        const userName = resultItem.querySelector('strong').textContent;
+        const userEmail = resultItem.querySelector('small').textContent;
+        selectUser(userId, userName, userEmail);
+      }
+    });
+
+    // Close search results when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-row')) {
+        document.getElementById('userSearchResults').style.display = 'none';
+      }
+    });
+
+    document.getElementById('job_title_id').addEventListener('change', (e) => {
+      const selectedOption = e.target.selectedOptions[0];
+      const payRate = selectedOption ? selectedOption.getAttribute('data-pay-rate') : '';
+      document.getElementById('salary').value = payRate;
+    });
+
     document.getElementById('employeeFormData').addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const userId = document.getElementById('user_id').value;
+      if (!userId) {
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">Please select an employee user.</div>';
+        return;
+      }
 
       const formData = new FormData(e.target);
       const data = Object.fromEntries(formData);
@@ -203,6 +291,7 @@
         const response = await fetch('manage-employees.php', {
           method: method,
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify(data)
         });
 
@@ -225,7 +314,7 @@
     // Load data when page loads
     loadEmployees();
     loadUsers();
-    loadDepartments();
+    loadJobTitles();
   </script>
 </body>
 </html>

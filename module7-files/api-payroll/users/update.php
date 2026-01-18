@@ -16,11 +16,11 @@ if (!empty($data->user_id)) {
     $user->password = $data->password ?? '';
 
     if ($user->update()) {
-        echo json_encode(array("message" => "User updated successfully."));
+        echo json_encode(array("success" => true, "message" => "User updated successfully."));
     } else {
-        echo json_encode(array("message" => "Unable to update user."));
+        echo json_encode(array("success" => false, "message" => "Unable to update user."));
     }
 } else {
-    echo json_encode(array("message" => "User ID required."));
+    echo json_encode(array("success" => false, "message" => "User ID required."));
 }
 ?>

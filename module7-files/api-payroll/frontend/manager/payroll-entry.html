@@ -1,0 +1,363 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <style>
+    .search-row {
+      position: relative;
+    }
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e6eef7;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    .search-result-item:hover {
+      background-color: #f8f9fa;
+    }
+  </style>
+  <title>Payroll Entry</title>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><div class="logo">P</div><h1>Payroll Entry</h1></div>
+      <div class="nav"><a class="btn" href="dashboard.html">Dashboard</a><a class="btn secondary" href="employees.html">Employees</a><a class="btn secondary" href="payroll.html">Payroll Records</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="margin:0">Individual Payroll Entry</h3>
+        <div style="display:flex;gap:10px;align-items:center">
+          <select class="form-control" id="payPeriod" style="width:auto">
+            <!-- Options will be populated by JavaScript -->
+          </select>
+        </div>
+      </div>
+
+      <div id="message" style="margin-bottom:16px"></div>
+
+      <!-- Employee Selection -->
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;font-weight:600">Select Employee:</label>
+        <div class="search-row" style="position:relative">
+          <input class="form-control" id="employeeSearch" placeholder="Search employees..." autocomplete="off">
+          <div id="employeeSearchResults" class="search-results" style="display:none;max-height:200px;overflow-y:auto;border:1px solid #e6eef7;border-top:none;background:white;z-index:1000"></div>
+        </div>
+      </div>
+
+      <!-- Payroll Entry Form -->
+      <div id="payrollForm" style="display:none;padding:20px;border:1px solid #e6eef7;border-radius:8px;background:#f9fafb">
+        <h4 id="employeeName">Employee Payroll Entry</h4>
+
+        <div class="grid" style="margin-bottom:16px">
+          <div class="col-6">
+            <label style="display:block;margin-bottom:4px;font-weight:600">Job Title:</label>
+            <input class="form-control" id="jobTitle" placeholder="Enter job title">
+          </div>
+          <div class="col-6">
+            <label style="display:block;margin-bottom:4px;font-weight:600">Hourly Rate ($):</label>
+            <input class="form-control" id="hourlyRate" type="number" step="0.01" min="0" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="grid" style="margin-bottom:16px">
+          <div class="col-6">
+            <label style="display:block;margin-bottom:4px;font-weight:600">Regular Hours:</label>
+            <input class="form-control hours-input" id="regularHours" type="number" step="0.5" min="0" placeholder="0.00">
+          </div>
+          <div class="col-6">
+            <label style="display:block;margin-bottom:4px;font-weight:600">Overtime Hours:</label>
+            <input class="form-control hours-input" id="overtimeHours" type="number" step="0.5" min="0" placeholder="0.00">
+          </div>
+        </div>
+
+        <!-- Pay Calculations -->
+        <div class="card" style="margin-bottom:16px">
+          <h4 style="margin-bottom:12px">Pay Calculations</h4>
+          <div class="grid">
+            <div class="col-6">
+              <div style="margin-bottom:8px"><strong>Total Hours:</strong> <span id="totalHours">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>Hourly Rate:</strong> $<span id="displayHourlyRate">0.00</span></div>
+              <div style="border-top:1px solid #e6eef7;padding-top:8px"><strong>Gross Pay:</strong> $<span id="grossPay">0.00</span></div>
+            </div>
+            <div class="col-6">
+              <div style="margin-bottom:8px"><strong>SSS (4.5%):</strong> $<span id="sssDeduction">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>PhilHealth (2.75%):</strong> $<span id="philhealthDeduction">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>Pag-IBIG (2%):</strong> $<span id="pagibigDeduction">0.00</span></div>
+              <div style="margin-bottom:8px"><strong>Income Tax (15%):</strong> $<span id="incomeTaxDeduction">0.00</span></div>
+              <div style="border-top:1px solid #e6eef7;padding-top:8px"><strong>Total Deductions:</strong> $<span id="totalDeductions">0.00</span></div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:12px;background:#e6f7ff;border-radius:6px">
+            <strong style="font-size:18px">Net Pay: $<span id="netPay">0.00</span></strong>
+          </div>
+        </div>
+
+        <div style="text-align:right">
+          <button class="btn" id="confirmPayrollBtn">Confirm Payroll Entry</button>
+          <button class="btn secondary" id="clearFormBtn">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/main.js"></script>
+  <script>
+    let employees = [];
+    let currentEmployee = null;
+
+    async function loadEmployees() {
+      try {
+        const response = await fetch('manage-employees.php');
+        const result = await response.json();
+        if (result.success) {
+          employees = result.employees;
+          populateEmployeeSelect();
+        }
+      } catch (error) {
+        console.error('Error loading employees:', error);
+      }
+    }
+
+    function populateEmployeeSelect() {
+      // No longer needed - search functionality handles this
+    }
+
+    function filterEmployees() {
+      const searchTerm = document.getElementById('employeeSearch').value.toLowerCase().trim();
+      const resultsDiv = document.getElementById('employeeSearchResults');
+
+      if (!searchTerm) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      const filtered = employees.filter(emp =>
+        emp.name.toLowerCase().includes(searchTerm) ||
+        (emp.job_title && emp.job_title.toLowerCase().includes(searchTerm))
+      );
+
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding:8px;color:#666">No employees found</div>';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+
+      resultsDiv.innerHTML = filtered.map(emp => `
+        <div class="search-result-item" data-employee-id="${emp.employee_id}" style="padding:8px;border-bottom:1px solid #f0f0f0;cursor:pointer">
+          <strong>${emp.name}</strong><br>
+          <small style="color:#666">${emp.job_title || 'No job title'} - $${parseFloat(emp.pay_rate || 0).toFixed(2)}/hr</small>
+        </div>
+      `).join('');
+      resultsDiv.style.display = 'block';
+    }
+
+    function selectEmployee(employeeId, employeeName) {
+      document.getElementById('employeeSearch').value = employeeName;
+      document.getElementById('employeeSearchResults').style.display = 'none';
+      showPayrollForm(employeeId);
+    }
+
+    function showPayrollForm(employeeId) {
+      currentEmployee = employees.find(emp => emp.employee_id == employeeId);
+      if (!currentEmployee) return;
+
+      document.getElementById('employeeName').textContent = `Payroll Entry for ${currentEmployee.name}`;
+
+      // Pre-fill job title and hourly rate from employee data (optional)
+      document.getElementById('jobTitle').value = currentEmployee.job_title || '';
+      document.getElementById('hourlyRate').value = currentEmployee.pay_rate || '';
+
+      document.getElementById('payrollForm').style.display = 'block';
+
+      // Clear previous values
+      clearForm();
+
+      // Scroll to form
+      document.getElementById('payrollForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function clearForm() {
+      document.getElementById('regularHours').value = '';
+      document.getElementById('overtimeHours').value = '';
+
+      // Reset all calculations
+      updateCalculations();
+    }
+
+    function updateCalculations() {
+      const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+      const regularHours = parseFloat(document.getElementById('regularHours').value) || 0;
+      const overtimeHours = parseFloat(document.getElementById('overtimeHours').value) || 0;
+
+      const totalHours = regularHours + overtimeHours;
+      const grossPay = totalHours * hourlyRate;
+
+      // Calculate deductions
+      const sssDeduction = grossPay * 0.045; // 4.5%
+      const philhealthDeduction = grossPay * 0.0275; // 2.75%
+      const pagibigDeduction = grossPay * 0.02; // 2%
+      const incomeTaxDeduction = grossPay * 0.15; // 15%
+
+      const totalDeductions = sssDeduction + philhealthDeduction + pagibigDeduction + incomeTaxDeduction;
+      const netPay = grossPay - totalDeductions;
+
+      // Update display
+      document.getElementById('totalHours').textContent = totalHours.toFixed(2);
+      document.getElementById('displayHourlyRate').textContent = hourlyRate.toFixed(2);
+      document.getElementById('grossPay').textContent = grossPay.toFixed(2);
+
+      document.getElementById('sssDeduction').textContent = sssDeduction.toFixed(2);
+      document.getElementById('philhealthDeduction').textContent = philhealthDeduction.toFixed(2);
+      document.getElementById('pagibigDeduction').textContent = pagibigDeduction.toFixed(2);
+      document.getElementById('incomeTaxDeduction').textContent = incomeTaxDeduction.toFixed(2);
+      document.getElementById('totalDeductions').textContent = totalDeductions.toFixed(2);
+
+      document.getElementById('netPay').textContent = netPay.toFixed(2);
+    }
+
+    async function confirmPayrollEntry() {
+      if (!currentEmployee) {
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">Please select an employee first.</div>';
+        return;
+      }
+
+      const jobTitle = document.getElementById('jobTitle').value.trim();
+      const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+      const regularHours = parseFloat(document.getElementById('regularHours').value) || 0;
+      const overtimeHours = parseFloat(document.getElementById('overtimeHours').value) || 0;
+
+      if (!jobTitle) {
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">Please enter a job title.</div>';
+        return;
+      }
+
+      if (hourlyRate <= 0) {
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">Please enter a valid hourly rate.</div>';
+        return;
+      }
+
+      if (regularHours <= 0 && overtimeHours <= 0) {
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">Please enter hours worked.</div>';
+        return;
+      }
+
+      const payPeriod = document.getElementById('payPeriod').value;
+      const totalHours = regularHours + overtimeHours;
+      const grossPay = totalHours * hourlyRate;
+
+      // Calculate deductions
+      const sssDeduction = grossPay * 0.045;
+      const philhealthDeduction = grossPay * 0.0275;
+      const pagibigDeduction = grossPay * 0.02;
+      const incomeTaxDeduction = grossPay * 0.15;
+      const totalDeductions = sssDeduction + philhealthDeduction + pagibigDeduction + incomeTaxDeduction;
+      const netPay = grossPay - totalDeductions;
+
+      try {
+        document.getElementById('confirmPayrollBtn').disabled = true;
+        document.getElementById('confirmPayrollBtn').textContent = 'Saving...';
+
+        const response = await fetch('save-payroll-entry.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employee_id: currentEmployee.employee_id,
+            pay_period: payPeriod,
+            job_title: jobTitle,
+            hourly_rate: hourlyRate,
+            regular_hours: regularHours,
+            overtime_hours: overtimeHours,
+            total_hours: totalHours,
+            gross_pay: grossPay,
+            sss_deduction: sssDeduction,
+            philhealth_deduction: philhealthDeduction,
+            pagibig_deduction: pagibigDeduction,
+            income_tax_deduction: incomeTaxDeduction,
+            total_deductions: totalDeductions,
+            net_pay: netPay
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('message').innerHTML = '<div class="alert alert-success">Payroll entry saved successfully!</div>';
+          clearForm();
+          document.getElementById('payrollForm').style.display = 'none';
+          document.getElementById('employeeSearch').value = '';
+        } else {
+          document.getElementById('message').innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+        }
+      } catch (error) {
+        console.error('Error saving payroll:', error);
+        document.getElementById('message').innerHTML = '<div class="alert alert-danger">An error occurred while saving payroll</div>';
+      } finally {
+        document.getElementById('confirmPayrollBtn').disabled = false;
+        document.getElementById('confirmPayrollBtn').textContent = 'Confirm Payroll Entry';
+      }
+    }
+
+    // Event listeners
+    document.getElementById('employeeSearch').addEventListener('input', filterEmployees);
+    document.getElementById('employeeSearch').addEventListener('focus', filterEmployees);
+
+    document.getElementById('employeeSearchResults').addEventListener('click', (e) => {
+      const resultItem = e.target.closest('.search-result-item');
+      if (resultItem) {
+        const employeeId = resultItem.getAttribute('data-employee-id');
+        const employeeName = resultItem.querySelector('strong').textContent;
+        selectEmployee(employeeId, employeeName);
+      }
+    });
+
+    // Close search results when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-row')) {
+        document.getElementById('employeeSearchResults').style.display = 'none';
+      }
+    });
+
+    document.querySelectorAll('.hours-input').forEach(input => {
+      input.addEventListener('input', updateCalculations);
+    });
+
+    document.getElementById('hourlyRate').addEventListener('input', updateCalculations);
+
+    document.getElementById('confirmPayrollBtn').addEventListener('click', confirmPayrollEntry);
+    document.getElementById('clearFormBtn').addEventListener('click', clearForm);
+
+    function populatePayPeriodSelect() {
+      const select = document.getElementById('payPeriod');
+      const currentDate = new Date();
+      
+      // Current month
+      const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM format
+      const currentMonthName = currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      
+      // Previous month
+      const prevDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const prevMonth = prevDate.toISOString().slice(0, 7);
+      const prevMonthName = prevDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      
+      select.innerHTML = `
+        <option value="${currentMonth}">${currentMonthName}</option>
+        <option value="${prevMonth}">${prevMonthName}</option>
+      `;
+    }
+
+    // Load data when page loads
+    populatePayPeriodSelect();
+    loadEmployees();
+  </script>
+</body>
+</html>

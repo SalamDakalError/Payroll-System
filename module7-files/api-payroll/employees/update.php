@@ -11,8 +11,7 @@ $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->employee_id)) {
     $employee->employee_id = $data->employee_id;
-    $employee->job_title = $data->job_title ?? '';
-    $employee->hourly_rate = $data->hourly_rate ?? 0;
+    $employee->job_title_id = $data->job_title_id ?? null;
 
     if ($employee->update()) {
         echo json_encode(array("message" => "Employee updated successfully."));

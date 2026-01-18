@@ -10,7 +10,7 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">EU</div><h1>Edit User</h1></div>
-      <div class="nav"><a class="btn" href="users.html">Back to Users</a><a class="btn secondary" href="change-password.html">Change Password</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn" href="users.html">Back to Users</a><a class="btn secondary" href="change-password.html">Change Password</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="card">
@@ -32,22 +32,26 @@
   </div>
   <script src="../assets/js/main.js"></script>
   <script>
-    // Check if user is logged in
-    fetch('/Payroll-System/module7-files/api-payroll/auth/check-session.php')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.logged_in || data.role_id != 1) {
-          document.getElementById('message').innerHTML = '<div class="alert alert-danger">You must be logged in as admin to access this page.</div>';
-          document.getElementById('editUserForm').style.display = 'none';
-          return;
-        }
-        // Continue with normal loading
-        loadPage();
-      })
-      .catch(err => {
-        console.error('Session check failed:', err);
-        document.getElementById('message').innerHTML = '<div class="alert alert-danger">Session check failed.</div>';
-      });
+    // Wait for DOM and main.js to load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if user is logged in
+      fetch('../../auth/check-session.php')
+        .then(res => res.json())
+        .then(data => {
+          console.log('Session check result:', data); // Debug log
+          if (!data.logged_in || data.user.role_id != 1) {
+            document.getElementById('message').innerHTML = '<div class="alert alert-danger">You must be logged in as admin to access this page.</div>';
+            document.getElementById('editUserForm').style.display = 'none';
+            return;
+          }
+          // Continue with normal loading
+          loadPage();
+        })
+        .catch(err => {
+          console.error('Session check failed:', err);
+          document.getElementById('message').innerHTML = '<div class="alert alert-danger">Session check failed.</div>';
+        });
+    });
 
     function loadPage() {
       // Get user ID from URL parameter
@@ -64,7 +68,7 @@
     }
 
     function loadRoles() {
-      apiFetch('/Payroll-System/module7-files/api-payroll/roles/read-all.php').then(json => {
+      apiFetch('../../roles/read-all.php').then(json => {
         const select = document.querySelector('select[name="role_id"]');
         if (json && json.records) {
           select.innerHTML = '<option value="">Select Role</option>' +
@@ -74,7 +78,7 @@
     }
 
     function loadUserData(userId) {
-      apiFetch(`/Payroll-System/module7-files/api-payroll/users/read-one.php?id=${userId}`).then(json => {
+      apiFetch(`../../users/read-one.php?id=${userId}`).then(json => {
         if (json && json.user) {
           const user = json.user;
           document.querySelector('input[name="email"]').value = user.email;
@@ -95,7 +99,7 @@
         password: fd.get('password')
       };
 
-      const res = await apiFetch('/Payroll-System/module7-files/api-payroll/users/update.php', {
+      const res = await apiFetch('../../users/update.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)

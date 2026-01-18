@@ -10,21 +10,16 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">H</div><h1>Payroll — HR</h1></div>
-      <div class="nav"><a class="btn" href="employees.html">Manage Employees</a><a class="btn secondary" href="attendance.html">Attendance</a><a class="btn secondary" href="payroll.html">Payroll</a><a class="btn secondary" href="payslips.html">Payslips</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn" href="employees.html">Manage Employees</a><a class="btn secondary" href="payroll.html">Payroll</a><a class="btn secondary" href="payslips.html">Payslips</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="grid" style="margin-bottom:16px">
-      <div class="col-4 card kpi">
+      <div class="col-6 card kpi">
         <div class="label">Upcoming Payroll</div>
         <div class="value" id="payroll-status">Loading...</div>
         <div class="small" id="pay-period"></div>
       </div>
-      <div class="col-4 card kpi">
-        <div class="label">Attendance Alerts</div>
-        <div class="value" id="attendance-alerts">Loading...</div>
-        <div class="small">Employees with absences this month</div>
-      </div>
-      <div class="col-4 card kpi">
+      <div class="col-6 card kpi">
         <div class="label">Total Employees</div>
         <div class="value" id="total-employees">Loading...</div>
         <div class="small">Active employees</div>
@@ -33,27 +28,53 @@
 
     <div class="card">
       <h3>Recent Hires</h3>
-      <table><thead><tr><th>Name</th><th>Department</th><th>Hire Date</th></tr></thead>
-      <tbody><tr><td>Jane Doe</td><td>Finance</td><td>2024-03-15</td></tr></tbody></table>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Hire Date</th>
+          </tr>
+        </thead>
+        <tbody id="recent-hires-table">
+          <tr><td colspan="2">Loading recent hires...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
   <script src="../assets/js/main.js"></script>
   <script>
     async function loadDashboardData() {
       try {
-        const response = await fetch('dashboard-data.php');
+        const response = await fetch('../../dashboard/dashboard-data.php');
         const result = await response.json();
 
         if (result.success) {
           const data = result.data;
           document.getElementById('payroll-status').textContent = data.payroll_status;
           document.getElementById('pay-period').textContent = data.current_pay_period;
-          document.getElementById('attendance-alerts').textContent = data.attendance_alerts;
           document.getElementById('total-employees').textContent = data.total_employees;
+
+          // Load recent hires
+          loadRecentHires(data.recent_hires);
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       }
+    }
+
+    function loadRecentHires(hires) {
+      const tbody = document.getElementById('recent-hires-table');
+      if (!hires || hires.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2">No recent hires</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = hires.map(hire => `
+        <tr>
+          <td>${hire.name}</td>
+          <td>${hire.hire_date}</td>
+        </tr>
+      `).join('');
     }
 
     // Load data when page loads

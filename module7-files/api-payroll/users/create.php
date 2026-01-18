@@ -16,11 +16,11 @@ if (!empty($data->name) && !empty($data->email) && !empty($data->password) && !e
     $user->role_id = $data->role_id;
 
     if ($user->create()) {
-        echo json_encode(array("message" => "User created successfully."));
+        echo json_encode(array("success" => true, "message" => "User created successfully."));
     } else {
-        echo json_encode(array("message" => "Unable to create user."));
+        echo json_encode(array("success" => false, "message" => "Unable to create user."));
     }
 } else {
-    echo json_encode(array("message" => "Incomplete data."));
+    echo json_encode(array("success" => false, "message" => "Incomplete data."));
 }
 ?>

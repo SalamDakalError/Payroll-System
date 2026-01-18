@@ -33,19 +33,50 @@
       .then(data => {
         if (data.logged_in) {
           document.getElementById('employee-name').textContent = data.user.name;
-          // Assuming we have job_title and hourly_rate in session or fetch from API
-          // For now, placeholder
+
+          // Load employee details (job title and hourly rate)
+          return fetch('/Payroll-System/module7-files/api-payroll/employees/read-current.php');
+        } else {
+          window.location.href = '/Payroll-System/module7-files/api-payroll/auth/login.php';
         }
+      })
+      .then(response => response.json())
+      .then(employeeData => {
+        if (employeeData.success) {
+          document.getElementById('job-title').textContent = employeeData.employee.job_title || 'Not assigned';
+          document.getElementById('hourly-rate').textContent = employeeData.employee.pay_rate ? '$' + parseFloat(employeeData.employee.pay_rate).toFixed(2) + '/hr' : 'Not set';
+        } else {
+          document.getElementById('job-title').textContent = 'Error loading';
+          document.getElementById('hourly-rate').textContent = 'Error loading';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading employee data:', error);
+        document.getElementById('job-title').textContent = 'Error loading';
+        document.getElementById('hourly-rate').textContent = 'Error loading';
       });
 
-    // Load recent payslips - Note: This needs to be implemented in Payslip class
-    fetch('/Payroll-System/module7-files/api-payroll/payslips/read-all.php')
+    // Load recent payslips for current employee
+    fetch('/Payroll-System/module7-files/api-payroll/payslips/read-current.php')
       .then(response => response.json())
       .then(data => {
         const tbody = document.getElementById('payslips-table');
-        tbody.innerHTML = data.records.slice(0,5).map(p => 
-          `<tr><td>${p.pay_period}</td><td>$${p.gross_pay}</td><td>$${p.net_pay}</td><td>${p.issued_date}</td></tr>`
-        ).join('');
+        if (data.success && data.records.length > 0) {
+          tbody.innerHTML = data.records.slice(0,5).map(p =>
+            `<tr>
+              <td>${p.pay_period}</td>
+              <td>$${parseFloat(p.gross_pay || 0).toFixed(2)}</td>
+              <td>$${parseFloat(p.net_pay || 0).toFixed(2)}</td>
+              <td>${p.issued_date}</td>
+            </tr>`
+          ).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4">No payslips found</td></tr>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading payslips:', error);
+        document.getElementById('payslips-table').innerHTML = '<tr><td colspan="4">Error loading payslips</td></tr>';
       });
   </script>
 </body>

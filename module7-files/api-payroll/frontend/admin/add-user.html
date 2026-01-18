@@ -10,7 +10,7 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><div class="logo">U</div><h1>Add User</h1></div>
-      <div class="nav"><a class="btn" href="users.html">Back to Users</a><a class="btn secondary" href="change-password.html">Change Password</a><a class="btn secondary" href="../shared/logout.php">Logout</a></div>
+      <div class="nav"><a class="btn" href="users.html">Back to Users</a><a class="btn secondary" href="change-password.html">Change Password</a><a class="btn secondary" href="../../auth/logout.php">Logout</a></div>
     </div>
 
     <div class="card">
@@ -29,12 +29,30 @@
   <script src="../assets/js/main.js"></script>
   <script>
     // Load roles
-    apiFetch('/Payroll-System/module7-files/api-payroll/roles/read-all.php').then(json=>{
-      if(json && json.records){
+    fetch('/Payroll-System/module7-files/api-payroll/roles/read-all.php', {credentials: 'include'})
+      .then(response => response.json())
+      .then(json => {
+        if(json && json.records && json.records.length > 0){
+          const select = document.querySelector('select[name="role_id"]');
+          select.innerHTML = '<option value="">Select Role</option>' +
+            json.records.map(r => `<option value="${r.role_id}">${r.role_name}</option>`).join('');
+        } else {
+          // Fallback: add default roles if API fails
+          const select = document.querySelector('select[name="role_id"]');
+          select.innerHTML = '<option value="">Select Role</option>' +
+            '<option value="1">Admin</option>' +
+            '<option value="2">HR</option>' +
+            '<option value="3">Employee</option>';
+        }
+      })
+      .catch(error => {
+        // Fallback: add default roles if API fails
         const select = document.querySelector('select[name="role_id"]');
-        select.innerHTML = '<option value="">Select Role</option>' + json.records.map(r=>`<option value="${r.role_id}">${r.role_name}</option>`).join('');
-      }
-    });
+        select.innerHTML = '<option value="">Select Role</option>' +
+          '<option value="1">Admin</option>' +
+          '<option value="2">HR</option>' +
+          '<option value="3">Employee</option>';
+      });
 
     // Form submit
     document.getElementById('userForm').addEventListener('submit', async e=>{
@@ -46,7 +64,7 @@
         password: fd.get('password'),
         role_id: parseInt(fd.get('role_id'))
       };
-      const res = await apiFetch('../../users/create.php', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      const res = await apiFetch('/Payroll-System/module7-files/api-payroll/users/create.php', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
       if(res && res.success){
         alert('User created successfully');
         document.getElementById('userForm').reset();

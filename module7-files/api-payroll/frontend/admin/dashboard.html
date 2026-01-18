@@ -16,22 +16,22 @@
     <div class="grid" style="margin-bottom:16px">
       <div class="col-3 card kpi">
         <div class="label">Total Users</div>
-        <div class="value">50</div>
+        <div class="value" id="totalUsers">0</div>
         <div class="small">Active users in system</div>
       </div>
       <div class="col-3 card kpi">
         <div class="label">Employees</div>
-        <div class="value">25</div>
+        <div class="value" id="totalEmployees">0</div>
         <div class="small">Active employees</div>
       </div>
       <div class="col-3 card kpi">
         <div class="label">Managers</div>
-        <div class="value">5</div>
+        <div class="value" id="totalManagers">0</div>
         <div class="small">Active managers</div>
       </div>
       <div class="col-3 card kpi">
         <div class="label">Total Payroll This Month</div>
-        <div class="value">$45,000</div>
+        <div class="value" id="totalPayroll">$0.00</div>
         <div class="small">Net payroll total</div>
       </div>
     </div>
@@ -41,9 +41,8 @@
         <h3>Recent Employees</h3>
         <table>
           <thead><tr><th>Name</th><th>Job Title</th><th>Hourly Rate</th></tr></thead>
-          <tbody>
-            <tr><td>John Doe</td><td>Cashier</td><td>$15.00</td></tr>
-            <tr><td>Jane Smith</td><td>Cook</td><td>$16.00</td></tr>
+          <tbody id="recentEmployeesTable">
+            <tr><td colspan="3">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -57,5 +56,42 @@
     </div>
   </div>
   <script src="../assets/js/main.js"></script>
+  <script>
+    // Load dashboard stats
+    function loadDashboardStats() {
+      apiFetch('../../dashboard/stats.php').then(data => {
+        if (data && data.success) {
+          document.getElementById('totalUsers').textContent = data.stats.total_users;
+          document.getElementById('totalEmployees').textContent = data.stats.total_employees;
+          document.getElementById('totalManagers').textContent = data.stats.total_managers;
+          document.getElementById('totalPayroll').textContent = '$' + data.stats.total_payroll;
+        }
+      });
+    }
+
+    // Load recent employees
+    function loadRecentEmployees() {
+      apiFetch('../../dashboard/recent-employees.php').then(data => {
+        const tbody = document.getElementById('recentEmployeesTable');
+        if (data && data.success && data.employees) {
+          if (data.employees.length > 0) {
+            tbody.innerHTML = data.employees.map(emp =>
+              `<tr><td>${emp.name}</td><td>${emp.job_title || 'Not assigned'}</td><td>$${parseFloat(emp.pay_rate || 0).toFixed(2)}</td></tr>`
+            ).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="3">No employees found</td></tr>';
+          }
+        } else {
+          tbody.innerHTML = '<tr><td colspan="3">Error loading employees</td></tr>';
+        }
+      });
+    }
+
+    // Load data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      loadDashboardStats();
+      loadRecentEmployees();
+    });
+  </script>
 </body>
 </html>

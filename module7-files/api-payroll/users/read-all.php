@@ -1,5 +1,14 @@
 <?php
+session_start();
 header("Content-Type: application/json");
+
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Unauthorized"
+    ]);
+    exit;
+}
 
 include_once '../config/database.php';
 include_once '../objects/user.php';
@@ -20,7 +29,8 @@ if ($num > 0) {
             "user_id" => $user_id,
             "name" => $name,
             "email" => $email,
-            "role_id" => $role_id
+            "role_id" => $role_id,
+            "role_name" => $row['role_name'] ?? 'Unknown'
         );
         array_push($users_arr["records"], $user_item);
     }
